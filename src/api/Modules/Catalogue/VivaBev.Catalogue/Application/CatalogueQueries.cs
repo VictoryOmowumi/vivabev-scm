@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using VivaBev.Catalogue.Contracts;
+using VivaBev.Catalogue.Domain;
 using VivaBev.Catalogue.Infrastructure;
 
 namespace VivaBev.Catalogue.Application;
@@ -27,4 +28,11 @@ internal sealed class CatalogueQueries(CatalogueDbContext db) : ICatalogueQuerie
             .Where(c => categoryIds.Contains(c.Id))
             .Select(c => new CategorySummaryDto(c.Id, c.Code, c.Name, c.IsActive))
             .ToListAsync(ct);
+
+    public async Task<ItemForPurchasingDto?> GetItemAsync(Guid itemId, CancellationToken ct = default) =>
+        await db.Items.AsNoTracking()
+            .Where(i => i.Id == itemId)
+            .Select(i => new ItemForPurchasingDto(
+                i.Id, i.Code, i.Name, i.ItemType == ItemType.Service, i.CategoryId, i.BaseUomCode, i.IsStocked, i.IsActive))
+            .SingleOrDefaultAsync(ct);
 }

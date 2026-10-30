@@ -15,6 +15,7 @@ internal sealed class ApiExceptionHandler(IProblemDetailsService problemDetails)
         {
             DomainException => (StatusCodes.Status400BadRequest, "Business rule violated"),
             NotFoundException => (StatusCodes.Status404NotFound, "Not found"),
+            ForbiddenException => (StatusCodes.Status403Forbidden, "Not allowed"),
             DbUpdateConcurrencyException => (StatusCodes.Status409Conflict, "Changed by someone else; reload and try again"),
             _ => (0, string.Empty)
         };

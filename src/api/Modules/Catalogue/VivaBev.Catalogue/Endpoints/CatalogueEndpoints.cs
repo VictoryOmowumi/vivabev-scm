@@ -25,6 +25,12 @@ internal static class CatalogueEndpoints
             return units.Select(u => new UnitOfMeasureDto(u.Code, u.Name, u.Dimension.ToString()));
         });
 
+        group.MapGet("/categories", async (CatalogueDbContext db, CancellationToken ct) =>
+        {
+            var categories = await db.Categories.AsNoTracking().OrderBy(c => c.Code).ToListAsync(ct);
+            return categories.Select(c => new CategorySummaryDto(c.Id, c.Code, c.Name, c.IsActive));
+        });
+
         group.MapGet("/items", async (string? search, CatalogueDbContext db, CancellationToken ct) =>
         {
             var items = db.Items.AsNoTracking();
