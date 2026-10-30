@@ -27,6 +27,7 @@
     <ProjectReference Include="..\Shared\VivaBev.Messaging\VivaBev.Messaging.csproj" />
     <ProjectReference Include="..\Shared\VivaBev.Notifications\VivaBev.Notifications.csproj" />
     <ProjectReference Include="..\Shared\VivaBev.Numbering\VivaBev.Numbering.csproj" />
+    <ProjectReference Include="..\VivaBev.Infrastructure\VivaBev.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

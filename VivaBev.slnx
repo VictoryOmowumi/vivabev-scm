@@ -2,6 +2,7 @@
   <Folder Name="/src/" />
   <Folder Name="/src/api/">
     <Project Path="src/api/VivaBev.Api.Host/VivaBev.Api.Host.csproj" />
+    <Project Path="src/api/VivaBev.Infrastructure/VivaBev.Infrastructure.csproj" />
     <Project Path="src/api/VivaBev.SharedKernel/VivaBev.SharedKernel.csproj" />
   </Folder>
   <Folder Name="/src/api/Modules/" />
