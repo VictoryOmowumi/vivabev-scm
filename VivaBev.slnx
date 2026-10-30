@@ -1,0 +1,48 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/api/">
+    <Project Path="src/api/VivaBev.Api.Host/VivaBev.Api.Host.csproj" />
+    <Project Path="src/api/VivaBev.SharedKernel/VivaBev.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/api/Modules/" />
+  <Folder Name="/src/api/Modules/Catalogue/">
+    <Project Path="src/api/Modules/Catalogue/VivaBev.Catalogue.Contracts/VivaBev.Catalogue.Contracts.csproj" />
+    <Project Path="src/api/Modules/Catalogue/VivaBev.Catalogue/VivaBev.Catalogue.csproj" />
+  </Folder>
+  <Folder Name="/src/api/Modules/Finance/">
+    <Project Path="src/api/Modules/Finance/VivaBev.Finance.Contracts/VivaBev.Finance.Contracts.csproj" />
+    <Project Path="src/api/Modules/Finance/VivaBev.Finance/VivaBev.Finance.csproj" />
+  </Folder>
+  <Folder Name="/src/api/Modules/Identity/">
+    <Project Path="src/api/Modules/Identity/VivaBev.Identity.Contracts/VivaBev.Identity.Contracts.csproj" />
+    <Project Path="src/api/Modules/Identity/VivaBev.Identity/VivaBev.Identity.csproj" />
+  </Folder>
+  <Folder Name="/src/api/Modules/Inventory/">
+    <Project Path="src/api/Modules/Inventory/VivaBev.Inventory.Contracts/VivaBev.Inventory.Contracts.csproj" />
+    <Project Path="src/api/Modules/Inventory/VivaBev.Inventory/VivaBev.Inventory.csproj" />
+  </Folder>
+  <Folder Name="/src/api/Modules/Procurement/">
+    <Project Path="src/api/Modules/Procurement/VivaBev.Procurement.Contracts/VivaBev.Procurement.Contracts.csproj" />
+    <Project Path="src/api/Modules/Procurement/VivaBev.Procurement/VivaBev.Procurement.csproj" />
+  </Folder>
+  <Folder Name="/src/api/Modules/Suppliers/">
+    <Project Path="src/api/Modules/Suppliers/VivaBev.Suppliers.Contracts/VivaBev.Suppliers.Contracts.csproj" />
+    <Project Path="src/api/Modules/Suppliers/VivaBev.Suppliers/VivaBev.Suppliers.csproj" />
+  </Folder>
+  <Folder Name="/src/api/Shared/">
+    <Project Path="src/api/Shared/VivaBev.Approvals/VivaBev.Approvals.csproj" />
+    <Project Path="src/api/Shared/VivaBev.Audit/VivaBev.Audit.csproj" />
+    <Project Path="src/api/Shared/VivaBev.Messaging/VivaBev.Messaging.csproj" />
+    <Project Path="src/api/Shared/VivaBev.Notifications/VivaBev.Notifications.csproj" />
+    <Project Path="src/api/Shared/VivaBev.Numbering/VivaBev.Numbering.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/VivaBev.ArchitectureTests/VivaBev.ArchitectureTests.csproj" />
+    <Project Path="tests/VivaBev.Catalogue.Tests/VivaBev.Catalogue.Tests.csproj" />
+    <Project Path="tests/VivaBev.Finance.Tests/VivaBev.Finance.Tests.csproj" />
+    <Project Path="tests/VivaBev.Identity.Tests/VivaBev.Identity.Tests.csproj" />
+    <Project Path="tests/VivaBev.Inventory.Tests/VivaBev.Inventory.Tests.csproj" />
+    <Project Path="tests/VivaBev.Procurement.Tests/VivaBev.Procurement.Tests.csproj" />
+    <Project Path="tests/VivaBev.Suppliers.Tests/VivaBev.Suppliers.Tests.csproj" />
+  </Folder>
+</Solution>

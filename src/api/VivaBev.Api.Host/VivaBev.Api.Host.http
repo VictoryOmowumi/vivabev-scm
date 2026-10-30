@@ -1,0 +1,6 @@
+@VivaBev.Api.Host_HostAddress = http://localhost:5103
+
+GET {{VivaBev.Api.Host_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aa31addb-f123-45a5-887f-885467732dc4</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Modules\Identity\VivaBev.Identity\VivaBev.Identity.csproj" />
+    <ProjectReference Include="..\Modules\Catalogue\VivaBev.Catalogue\VivaBev.Catalogue.csproj" />
+    <ProjectReference Include="..\Modules\Suppliers\VivaBev.Suppliers\VivaBev.Suppliers.csproj" />
+    <ProjectReference Include="..\Modules\Procurement\VivaBev.Procurement\VivaBev.Procurement.csproj" />
+    <ProjectReference Include="..\Modules\Inventory\VivaBev.Inventory\VivaBev.Inventory.csproj" />
+    <ProjectReference Include="..\Modules\Finance\VivaBev.Finance\VivaBev.Finance.csproj" />
+    <ProjectReference Include="..\Shared\VivaBev.Approvals\VivaBev.Approvals.csproj" />
+    <ProjectReference Include="..\Shared\VivaBev.Audit\VivaBev.Audit.csproj" />
+    <ProjectReference Include="..\Shared\VivaBev.Messaging\VivaBev.Messaging.csproj" />
+    <ProjectReference Include="..\Shared\VivaBev.Notifications\VivaBev.Notifications.csproj" />
+    <ProjectReference Include="..\Shared\VivaBev.Numbering\VivaBev.Numbering.csproj" />
+  </ItemGroup>
+
+</Project>
