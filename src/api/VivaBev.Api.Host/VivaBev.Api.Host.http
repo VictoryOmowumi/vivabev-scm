@@ -1,6 +1,50 @@
-@VivaBev.Api.Host_HostAddress = http://localhost:5103
+@host = http://localhost:5103
 
-GET {{VivaBev.Api.Host_HostAddress}}/weatherforecast/
-Accept: application/json
+### Check the API is running
+GET {{host}}/api/catalogue/items?search=pet
+
+### 1. Create a supplier (starts as Prospect)
+# @name create
+POST {{host}}/api/suppliers
+Content-Type: application/json
+
+{
+  "code": "sup-0100",
+  "legalName": "Ibadan Bottling Supplies Ltd",
+  "taxId": "tin-10000100",
+  "contactName": "Bola Ade",
+  "contactEmail": "bola@ibadanbottling.example"
+}
+
+### Store the new ID
+@supplierId = {{create.response.body.id}}
+
+### 2. Try to submit without a category: expect 400
+POST {{host}}/api/suppliers/{{supplierId}}/submit
+
+### 3. Request a category (PKG-BTL, Bottles)
+POST {{host}}/api/suppliers/{{supplierId}}/categories
+Content-Type: application/json
+
+{ "categoryId": "01a18cef-01df-770f-bf08-c3029cbd7a39" }
+
+### 4. Submit, then approve
+POST {{host}}/api/suppliers/{{supplierId}}/submit
 
 ###
+POST {{host}}/api/suppliers/{{supplierId}}/approve
+
+### 5. Approving again: expect 400, it is no longer PendingApproval
+POST {{host}}/api/suppliers/{{supplierId}}/approve
+
+### 6. Suspend with a reason
+POST {{host}}/api/suppliers/{{supplierId}}/suspend
+Content-Type: application/json
+
+{ "reason": "Missed two delivery dates" }
+
+### 7. See the result
+GET {{host}}/api/suppliers/{{supplierId}}
+
+### 8. A supplier that doesn't exist: expect 404
+GET {{host}}/api/suppliers/00000000-0000-0000-0000-000000000000
