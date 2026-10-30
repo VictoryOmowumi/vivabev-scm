@@ -4,6 +4,7 @@ using VivaBev.Identity;
 using VivaBev.Infrastructure.Persistence;
 using VivaBev.SharedKernel.Abstractions;
 using VivaBev.Suppliers;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,13 +28,17 @@ app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    await app.Services.SeedOrganisationAsync();
+    app.MapScalarApiReference();
+    await app.Services.SeedIdentityAsync();
     await app.Services.SeedCatalogueAsync();
-    await app.Services.SeedSuppliersAsync(); // after Catalogue: it looks up categories
+    await app.Services.SeedSuppliersAsync();
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();   // who is this? reads the cookie
+app.UseAuthorization();    // are they allowed? checks the endpoint's policy
 
+app.MapAuthEndpoints();
 app.MapOrganisationEndpoints();
 app.MapCatalogueEndpoints();
 app.MapSuppliersEndpoints();

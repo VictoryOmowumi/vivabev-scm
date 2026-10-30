@@ -1,50 +1,41 @@
 @host = http://localhost:5103
 
-### Check the API is running
-GET {{host}}/api/catalogue/items?search=pet
+### 1. Not signed in: expect 401
+GET {{host}}/api/suppliers
 
-### 1. Create a supplier (starts as Prospect)
-# @name create
-POST {{host}}/api/suppliers
+### 2. Sign in as the requester
+POST {{host}}/api/auth/login
 Content-Type: application/json
 
-{
-  "code": "sup-0100",
-  "legalName": "Ibadan Bottling Supplies Ltd",
-  "taxId": "tin-10000100",
-  "contactName": "Bola Ade",
-  "contactEmail": "bola@ibadanbottling.example"
-}
+{ "email": "requester@vivabev.example", "password": "Demo@2026!" }
 
-### Store the new ID
-@supplierId = {{create.response.body.id}}
+### 3. Who am I? Note the permissions list
+GET {{host}}/api/auth/me
 
-### 2. Try to submit without a category: expect 400
-POST {{host}}/api/suppliers/{{supplierId}}/submit
-
-### 3. Request a category (PKG-BTL, Bottles)
-POST {{host}}/api/suppliers/{{supplierId}}/categories
-Content-Type: application/json
-
-{ "categoryId": "01a18cef-01df-770f-bf08-c3029cbd7a39" }
-
-### 4. Submit, then approve
-POST {{host}}/api/suppliers/{{supplierId}}/submit
+### 4. Reading suppliers is allowed: expect 200
+# @name list
+GET {{host}}/api/suppliers?status=pendingapproval
 
 ###
-POST {{host}}/api/suppliers/{{supplierId}}/approve
+@pendingId = {{list.response.body.$[0].id}}
 
-### 5. Approving again: expect 400, it is no longer PendingApproval
-POST {{host}}/api/suppliers/{{supplierId}}/approve
+### 5. Approving is not: expect 403
+POST {{host}}/api/suppliers/{{pendingId}}/approve
 
-### 6. Suspend with a reason
-POST {{host}}/api/suppliers/{{supplierId}}/suspend
+### 6. Switch to the procurement manager
+POST {{host}}/api/auth/logout
+
+###
+POST {{host}}/api/auth/login
 Content-Type: application/json
 
-{ "reason": "Missed two delivery dates" }
+{ "email": "procurement.manager@vivabev.example", "password": "Demo@2026!" }
 
-### 7. See the result
-GET {{host}}/api/suppliers/{{supplierId}}
+### 7. Now approval works: expect 204
+POST {{host}}/api/suppliers/{{pendingId}}/approve
 
-### 8. A supplier that doesn't exist: expect 404
-GET {{host}}/api/suppliers/00000000-0000-0000-0000-000000000000
+### 8. Wrong password five times locks the account (try it on the buyer)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "buyer@vivabev.example", "password": "wrong-password" }

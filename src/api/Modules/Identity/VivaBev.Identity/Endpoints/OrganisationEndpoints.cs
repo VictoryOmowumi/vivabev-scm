@@ -6,6 +6,7 @@ using VivaBev.Identity.Application;
 using VivaBev.Identity.Contracts;
 using VivaBev.Identity.Domain.Organisation;
 using VivaBev.Identity.Infrastructure;
+using VivaBev.SharedKernel.Security;
 
 namespace VivaBev.Identity.Endpoints;
 
@@ -13,7 +14,8 @@ internal static class OrganisationEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/organisation").WithTags("Organisation");
+        var group = app.MapGroup("/api/organisation").WithTags("Organisation")
+            .RequireAuthorization(Permissions.Organisation.View);
 
         group.MapGet("/business-units", async (IdentityModuleDbContext db, CancellationToken ct) =>
         {
@@ -55,20 +57,20 @@ internal static class OrganisationEndpoints
         {
             var costCentreId = await service.AddCostCentreAsync(id, request, ct);
             return Results.Created($"/api/organisation/departments/{id}", new { id = costCentreId });
-        });
+        }).RequireAuthorization(Permissions.Organisation.Manage);
 
         group.MapPost("/departments/{id:guid}/cost-centres/{costCentreId:guid}/deactivate", async (Guid id,
             Guid costCentreId, OrganisationService service, CancellationToken ct) =>
         {
             await service.DeactivateCostCentreAsync(id, costCentreId, ct);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(Permissions.Organisation.Manage);
 
         group.MapPost("/departments/{id:guid}/deactivate", async (Guid id, OrganisationService service,
             CancellationToken ct) =>
         {
             await service.DeactivateDepartmentAsync(id, ct);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(Permissions.Organisation.Manage);
     }
 }

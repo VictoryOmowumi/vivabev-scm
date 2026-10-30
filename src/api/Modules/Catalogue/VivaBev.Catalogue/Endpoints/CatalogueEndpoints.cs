@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using VivaBev.Catalogue.Contracts;
 using VivaBev.Catalogue.Infrastructure;
+using VivaBev.SharedKernel.Security;
 
 namespace VivaBev.Catalogue.Endpoints;
 
@@ -11,7 +12,8 @@ internal static class CatalogueEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/catalogue").WithTags("Catalogue");
+        var group = app.MapGroup("/api/catalogue").WithTags("Catalogue")
+            .RequireAuthorization(Permissions.Catalogue.View);
 
         group.MapGet("/units-of-measure", async (CatalogueDbContext db, CancellationToken ct) =>
         {
