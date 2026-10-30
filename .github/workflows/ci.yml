@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Install the .NET SDK from global.json
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore packages and tools
+        run: |
+          dotnet restore
+          dotnet tool restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release --logger trx --results-directory TestResults
+
+      - name: Check every model change has a migration
+        env:
+          # Never used to connect; the app only needs a value to start up.
+          ConnectionStrings__VivaBev: "Server=localhost;Database=VivaBev;User Id=ci;Password=ci;TrustServerCertificate=True"
+        run: |
+          api=src/api/VivaBev.Api.Host
+          dotnet ef migrations has-pending-model-changes --no-build --configuration Release \
+            --project src/api/Modules/Catalogue/VivaBev.Catalogue --startup-project $api --context CatalogueDbContext
+          dotnet ef migrations has-pending-model-changes --no-build --configuration Release \
+            --project src/api/Modules/Suppliers/VivaBev.Suppliers --startup-project $api --context SuppliersDbContext
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults
