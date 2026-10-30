@@ -53,6 +53,8 @@ jobs:
             --project src/api/Modules/Catalogue/VivaBev.Catalogue --startup-project $api --context CatalogueDbContext
           dotnet ef migrations has-pending-model-changes --no-build --configuration Release \
             --project src/api/Modules/Suppliers/VivaBev.Suppliers --startup-project $api --context SuppliersDbContext
+          dotnet ef migrations has-pending-model-changes --no-build --configuration Release \
+            --project src/api/Modules/Identity/VivaBev.Identity --startup-project $api --context IdentityModuleDbContext
 
       - name: Upload test results
         if: always()
