@@ -16,7 +16,7 @@ public static class PersistenceRegistration
 
     public static IServiceCollection AddModuleDbContext<TContext>(
         this IServiceCollection services, IConfiguration configuration, string schema)
-        where TContext : ModuleDbContext
+        where TContext : DbContext
     {
         var connectionString = configuration.GetConnectionString("VivaBev")
             ?? throw new InvalidOperationException("Connection string 'VivaBev' is not configured.");

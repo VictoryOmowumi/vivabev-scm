@@ -7,6 +7,7 @@ using VivaBev.Suppliers.Application;
 using VivaBev.Suppliers.Contracts;
 using VivaBev.Suppliers.Domain;
 using VivaBev.Suppliers.Infrastructure;
+using VivaBev.SharedKernel.Security;
 
 namespace VivaBev.Suppliers.Endpoints;
 
@@ -14,7 +15,8 @@ internal static class SupplierEndpoints
 {
     public static void Map(IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/suppliers").WithTags("Suppliers");
+        var group = app.MapGroup("/api/suppliers").WithTags("Suppliers")
+            .RequireAuthorization(Permissions.Suppliers.View);
 
         // ---------- queries ----------
 
@@ -80,59 +82,59 @@ internal static class SupplierEndpoints
         {
             var id = await service.CreateAsync(request, ct);
             return Results.Created($"/api/suppliers/{id}", new { id });
-        });
+        }).RequireAuthorization(Permissions.Suppliers.Manage);
 
         group.MapPost("/{id:guid}/categories", async (Guid id, RequestCategoryRequest request,
             SupplierService service, CancellationToken ct) =>
         {
             await service.RequestCategoryAsync(id, request.CategoryId, ct);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(Permissions.Suppliers.Manage);
 
         group.MapPost("/{id:guid}/categories/{categoryId:guid}/approve", async (Guid id, Guid categoryId,
             SupplierService service, CancellationToken ct) =>
         {
             await service.ApproveCategoryAsync(id, categoryId, ct);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(Permissions.Suppliers.Approve);
 
         group.MapPost("/{id:guid}/categories/{categoryId:guid}/revoke", async (Guid id, Guid categoryId,
             SupplierService service, CancellationToken ct) =>
         {
             await service.RevokeCategoryAsync(id, categoryId, ct);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(Permissions.Suppliers.Approve);
 
         group.MapPost("/{id:guid}/submit", async (Guid id, SupplierService service, CancellationToken ct) =>
         {
             await service.SubmitAsync(id, ct);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(Permissions.Suppliers.Manage);
 
         group.MapPost("/{id:guid}/approve", async (Guid id, SupplierService service, CancellationToken ct) =>
         {
             await service.ApproveAsync(id, ct);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(Permissions.Suppliers.Approve);
 
         group.MapPost("/{id:guid}/reject", async (Guid id, ReasonRequest request, SupplierService service,
             CancellationToken ct) =>
         {
             await service.RejectAsync(id, request.Reason, ct);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(Permissions.Suppliers.Approve);
 
         group.MapPost("/{id:guid}/suspend", async (Guid id, ReasonRequest request, SupplierService service,
             CancellationToken ct) =>
         {
             await service.SuspendAsync(id, request.Reason, ct);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(Permissions.Suppliers.Approve);
 
         group.MapPost("/{id:guid}/reinstate", async (Guid id, SupplierService service, CancellationToken ct) =>
         {
             await service.ReinstateAsync(id, ct);
             return Results.NoContent();
-        });
+        }).RequireAuthorization(Permissions.Suppliers.Approve);
     }
 }
