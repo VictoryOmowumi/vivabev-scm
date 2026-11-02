@@ -20,6 +20,7 @@ public static class IdentityModule
         services.AddModuleDbContext<IdentityModuleDbContext>(configuration, IdentityModuleDbContext.SchemaName);
         services.AddScoped<OrganisationService>();
         services.AddScoped<IOrganisationQueries, OrganisationQueries>();
+        services.AddScoped<IUserDirectory, UserDirectory>();
 
         // Users, roles and sign-in
         services.AddIdentityCore<AppUser>(options =>

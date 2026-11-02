@@ -1,41 +1,99 @@
 @host = http://localhost:5103
 
-### 1. Not signed in: expect 401
-GET {{host}}/api/suppliers
-
-### 2. Sign in as the requester
+### 1. Sign in as the requester (IT department)
 POST {{host}}/api/auth/login
 Content-Type: application/json
 
 { "email": "requester@vivabev.example", "password": "Demo@2026!" }
 
-### 3. Who am I? Note the permissions list
-GET {{host}}/api/auth/me
-
-### 4. Reading suppliers is allowed: expect 200
-# @name list
-GET {{host}}/api/suppliers?status=pendingapproval
+### 2. Find IT's cost centres and the head office site
+GET {{host}}/api/organisation/departments
 
 ###
-@pendingId = {{list.response.body.$[0].id}}
+GET {{host}}/api/organisation/sites?type=office
 
-### 5. Approving is not: expect 403
-POST {{host}}/api/suppliers/{{pendingId}}/approve
+### 3. Find the laptop item and the training category
+GET {{host}}/api/catalogue/items?search=laptop
 
-### 6. Switch to the procurement manager
+###
+GET {{host}}/api/catalogue/categories
+
+###
+@itOps = 01a18d44-94a6-7041-86f4-4e0a2f875c21
+@finAcc = 01a18d44-94a6-7331-a257-69d10c617ed6
+@hq = 01a18d44-94ca-720c-bead-c3d818e4a1d3
+@laptop = 01a18cef-026f-76d4-94cc-d005a84024d3
+@training = 01a18cef-01df-7c8d-9831-9e58a476ce04
+
+### 4. Another department's cost centre: expect 400
+POST {{host}}/api/requisitions
+Content-Type: application/json
+
+{ "title": "Laptops", "justification": "New analysts", "costCentreId": "{{finAcc}}",
+  "deliverToSiteId": "{{hq}}", "requiredBy": "2026-12-15" }
+
+### 5. Your own cost centre: expect 201 with a REQ-2027-xxxxx number
+# @name create
+POST {{host}}/api/requisitions
+Content-Type: application/json
+
+{ "title": "Laptops for new analysts", "justification": "Three analysts join in November",
+  "costCentreId": "{{itOps}}", "deliverToSiteId": "{{hq}}", "requiredBy": "2026-12-15" }
+
+###
+@req = {{create.response.body.id}}
+
+### 6. A catalogue line: type, unit and description come from the item
+POST {{host}}/api/requisitions/{{req}}/lines
+Content-Type: application/json
+
+{ "itemId": "{{laptop}}", "quantity": 3, "estimatedUnitPrice": 850000 }
+
+### 7. A free-text service line
+POST {{host}}/api/requisitions/{{req}}/lines
+Content-Type: application/json
+
+{ "description": "Onboarding training, 2 days", "categoryId": "{{training}}", "lineType": "service",
+  "uomCode": "DAY", "quantity": 2, "estimatedUnitPrice": 150000 }
+
+### 8. Read it back: total 2,850,000 NGN
+GET {{host}}/api/requisitions/{{req}}
+
+### 9. Submit, then try to add a line: expect 400
+POST {{host}}/api/requisitions/{{req}}/submit
+
+###
+POST {{host}}/api/requisitions/{{req}}/lines
+Content-Type: application/json
+
+{ "itemId": "{{laptop}}", "quantity": 1, "estimatedUnitPrice": 850000 }
+
+### 10. Sign in as the manager: they can't touch someone else's requisition (403)
 POST {{host}}/api/auth/logout
 
 ###
 POST {{host}}/api/auth/login
 Content-Type: application/json
 
-{ "email": "procurement.manager@vivabev.example", "password": "Demo@2026!" }
+{ "email": "manager@vivabev.example", "password": "Demo@2026!" }
 
-### 7. Now approval works: expect 204
-POST {{host}}/api/suppliers/{{pendingId}}/approve
+###
+POST {{host}}/api/requisitions/{{req}}/cancel
+Content-Type: application/json
 
-### 8. Wrong password five times locks the account (try it on the buyer)
+{ "reason": "Not mine to cancel" }
+
+### 11. The manager's list is empty: no view-all permission, so only their own rows
+GET {{host}}/api/requisitions
+
+### 12. The buyer sees everyone's
+POST {{host}}/api/auth/logout
+
+###
 POST {{host}}/api/auth/login
 Content-Type: application/json
 
-{ "email": "buyer@vivabev.example", "password": "wrong-password" }
+{ "email": "buyer@vivabev.example", "password": "Demo@2026!" }
+
+###
+GET {{host}}/api/requisitions

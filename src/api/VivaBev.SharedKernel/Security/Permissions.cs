@@ -24,10 +24,17 @@ public static class Permissions
         public const string Manage = "organisation.manage";
     }
 
+    public static class Requisitions
+    {
+        public const string Create = "requisitions.create";     // raise and edit your own
+        public const string ViewAll = "requisitions.view-all";  // see everyone's
+    }
+
     public static readonly IReadOnlyList<string> All =
     [
         Catalogue.View, Catalogue.Manage,
         Suppliers.View, Suppliers.Manage, Suppliers.Approve,
         Organisation.View, Organisation.Manage,
+        Requisitions.Create, Requisitions.ViewAll,
     ];
 }

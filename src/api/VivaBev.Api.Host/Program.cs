@@ -2,6 +2,8 @@ using VivaBev.Api.Host;
 using VivaBev.Catalogue;
 using VivaBev.Identity;
 using VivaBev.Infrastructure.Persistence;
+using VivaBev.Numbering;
+using VivaBev.Procurement;
 using VivaBev.SharedKernel.Abstractions;
 using VivaBev.Suppliers;
 using Scalar.AspNetCore;
@@ -15,11 +17,13 @@ builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddVivaBevPersistence();
+builder.Services.AddDocumentNumbering(builder.Configuration);
 
 // Modules
 builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddCatalogueModule(builder.Configuration);
 builder.Services.AddSuppliersModule(builder.Configuration);
+builder.Services.AddProcurementModule(builder.Configuration);
 
 var app = builder.Build();
 
@@ -42,5 +46,6 @@ app.MapAuthEndpoints();
 app.MapOrganisationEndpoints();
 app.MapCatalogueEndpoints();
 app.MapSuppliersEndpoints();
+app.MapProcurementEndpoints();
 
 app.Run();
