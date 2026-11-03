@@ -8,6 +8,7 @@ using VivaBev.Finance.Domain;
 using VivaBev.Finance.Infrastructure;
 using VivaBev.Identity.Contracts;
 using VivaBev.SharedKernel.Security;
+using VivaBev.SharedKernel.Time;
 
 namespace VivaBev.Finance.Endpoints;
 
@@ -19,9 +20,9 @@ internal static class BudgetEndpoints
             .RequireAuthorization(Permissions.Finance.ViewBudgets);
 
         group.MapGet("/", async (int? fiscalYear, FinanceDbContext db, IOrganisationQueries organisation,
-            CancellationToken ct) =>
+            TimeProvider clock, CancellationToken ct) =>
         {
-            var year = fiscalYear ?? 2027;
+            var year = fiscalYear ?? FiscalCalendar.FiscalYearOf(clock.GetUtcNow().UtcDateTime);
             var costCentres = (await organisation.GetCostCentresAsync(ct)).ToDictionary(c => c.Id);
 
             var budgets = await db.Budgets.AsNoTracking()
