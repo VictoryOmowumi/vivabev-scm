@@ -239,3 +239,172 @@ POST {{host}}/api/requisitions/{{large.response.body.id}}/submit
 
 ### Now one step: the policy adds head of department above ₦5m, but that's Funmi again, so she appears once
 GET {{host}}/api/approvals/documents/Requisition/{{large.response.body.id}}
+
+#####################################################################
+# Budgets walkthrough (cancel any pending requisition first for matching numbers)
+#####################################################################
+
+### ---------- Amaka, Finance: the starting position ----------
+POST {{host}}/api/auth/logout
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "finance@vivabev.example", "password": "Demo@2026!" }
+
+### CC-IT-OPS: budget 12,000,000, available 12,000,000
+GET {{host}}/api/finance/budgets
+
+### ---------- Chinedu raises requisition A: 10 laptops, ₦8,500,000 ----------
+POST {{host}}/api/auth/logout
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "requester@vivabev.example", "password": "Demo@2026!" }
+
+###
+# @name reqA
+POST {{host}}/api/requisitions
+Content-Type: application/json
+
+{ "title": "Laptops for the service desk", "justification": "Ten service desk laptops are failing",
+  "costCentreId": "{{itOps}}", "deliverToSiteId": "{{hq}}", "requiredBy": "2027-01-15" }
+
+###
+POST {{host}}/api/requisitions/{{reqA.response.body.id}}/lines
+Content-Type: application/json
+
+{ "itemId": "{{laptop}}", "quantity": 10, "estimatedUnitPrice": 850000 }
+
+###
+POST {{host}}/api/requisitions/{{reqA.response.body.id}}/submit
+
+### budgetStatus WithinBudget, budgetAvailableAtSubmit 12000000
+GET {{host}}/api/requisitions/{{reqA.response.body.id}}
+
+###
+# @name trailA
+GET {{host}}/api/approvals/documents/Requisition/{{reqA.response.body.id}}
+
+### ---------- Funmi approves A ----------
+POST {{host}}/api/auth/logout
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "manager@vivabev.example", "password": "Demo@2026!" }
+
+###
+POST {{host}}/api/approvals/{{trailA.response.body.requestId}}/approve
+Content-Type: application/json
+
+{ "comment": "Approved" }
+
+### ---------- Chinedu raises requisition B: 5 laptops, ₦4,250,000 ----------
+POST {{host}}/api/auth/logout
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "requester@vivabev.example", "password": "Demo@2026!" }
+
+###
+# @name reqB
+POST {{host}}/api/requisitions
+Content-Type: application/json
+
+{ "title": "Laptops for new contractors", "justification": "Five contractors start in December",
+  "costCentreId": "{{itOps}}", "deliverToSiteId": "{{hq}}", "requiredBy": "2027-01-15" }
+
+###
+POST {{host}}/api/requisitions/{{reqB.response.body.id}}/lines
+Content-Type: application/json
+
+{ "itemId": "{{laptop}}", "quantity": 5, "estimatedUnitPrice": 850000 }
+
+###
+POST {{host}}/api/requisitions/{{reqB.response.body.id}}/submit
+
+### budgetStatus OverBudget: 4,250,000 requested, only 3,500,000 available
+GET {{host}}/api/requisitions/{{reqB.response.body.id}}
+
+### Two steps now: Line manager (Funmi), then Finance controller (Amaka)
+# @name trailB
+GET {{host}}/api/approvals/documents/Requisition/{{reqB.response.body.id}}
+
+### ---------- Funmi, then Amaka, approve B ----------
+POST {{host}}/api/auth/logout
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "manager@vivabev.example", "password": "Demo@2026!" }
+
+###
+POST {{host}}/api/approvals/{{trailB.response.body.requestId}}/approve
+Content-Type: application/json
+
+{ "comment": "Needed, but over budget" }
+
+###
+POST {{host}}/api/auth/logout
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "finance@vivabev.example", "password": "Demo@2026!" }
+
+### Amaka's inbox: overBudget true
+GET {{host}}/api/approvals/inbox
+
+###
+POST {{host}}/api/approvals/{{trailB.response.body.requestId}}/approve
+Content-Type: application/json
+
+{ "comment": "Approved; IT budget to be increased" }
+
+### CC-IT-OPS: committed 12,750,000, available -750,000
+GET {{host}}/api/finance/budgets
+
+### ---------- Chinedu cancels A: its commitment is released ----------
+POST {{host}}/api/auth/logout
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "requester@vivabev.example", "password": "Demo@2026!" }
+
+###
+POST {{host}}/api/requisitions/{{reqA.response.body.id}}/cancel
+Content-Type: application/json
+
+{ "reason": "Service desk laptops repaired under warranty" }
+
+### ---------- Amaka checks, then raises the budget ----------
+POST {{host}}/api/auth/logout
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "finance@vivabev.example", "password": "Demo@2026!" }
+
+### Available back to 7,750,000
+GET {{host}}/api/finance/budgets
+
+###
+POST {{host}}/api/finance/budgets
+Content-Type: application/json
+
+{ "costCentreId": "{{itOps}}", "fiscalYear": 2027, "amount": 20000000 }
+
+### Back to 15,750,000 available
+GET {{host}}/api/finance/budgets

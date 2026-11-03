@@ -71,6 +71,7 @@ internal static class RequisitionEndpoints
                 costCentre?.Code ?? "?", site?.Code ?? "?",
                 r.RequiredBy, r.CurrencyCode, r.EstimatedTotal, r.SubmittedAt, r.CancellationReason,
                 r.RejectionReason, r.ApprovedAt,
+                r.BudgetStatus.ToString(), r.BudgetAvailableAtSubmit,
                 r.Lines.OrderBy(l => l.LineNo)
                     .Select(l => new RequisitionLineDto(
                         l.LineNo, l.LineType.ToString(), l.ItemId, l.ItemCode, l.Description, l.CategoryId,

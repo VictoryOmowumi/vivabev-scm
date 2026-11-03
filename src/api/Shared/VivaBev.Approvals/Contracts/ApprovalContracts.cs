@@ -2,7 +2,8 @@ namespace VivaBev.Approvals.Contracts;
 
 /// <summary>What a module hands to Approvals when a document needs approving.</summary>
 public sealed record ApprovalSubject(
-    string DocumentType, Guid DocumentId, string DocumentNumber, string Title, decimal Amount, Guid RequestedBy);
+    string DocumentType, Guid DocumentId, string DocumentNumber, string Title, decimal Amount, Guid RequestedBy,
+    bool OverBudget = false);
 
 public interface IApprovals
 {
@@ -30,7 +31,7 @@ public sealed record DecisionRequest(string? Comment);
 
 public sealed record ApprovalTaskDto(
     Guid RequestId, string DocumentType, Guid DocumentId, string DocumentNumber, string Title, decimal Amount,
-    string RequestedByName, DateTime RequestedAt, string StepName, int StepNumber, int TotalSteps);
+    string RequestedByName, DateTime RequestedAt, string StepName, int StepNumber, int TotalSteps, bool OverBudget);
 
 public sealed record ApprovalStepDto(
     int Sequence, string Name, Guid ApproverId, string ApproverName, string Decision, DateTime? DecidedAt, string? Comment);

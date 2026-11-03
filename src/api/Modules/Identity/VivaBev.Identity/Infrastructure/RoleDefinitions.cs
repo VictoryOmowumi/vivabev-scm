@@ -29,9 +29,9 @@ internal static class RoleDefinitions
              Permissions.Requisitions.ViewAll]),
         (WarehouseOfficer, "Receives, stores and issues stock", Basic),
         (FinanceOfficer, "Budgets, invoices and matching",
-            [.. Basic, Permissions.Requisitions.ViewAll]),
+            [.. Basic, Permissions.Requisitions.ViewAll, Permissions.Finance.ViewBudgets, Permissions.Finance.ManageBudgets]),
         (Executive, "Managing Director; final approver for large spend",
-            [.. Basic, Permissions.Requisitions.ViewAll]),
+            [.. Basic, Permissions.Requisitions.ViewAll, Permissions.Finance.ViewBudgets]),
         (Administrator, "Configures the system; holds every permission", [.. Permissions.All]),
     ];
 }

@@ -37,7 +37,7 @@ internal static class ApprovalEndpoints
             return requests.Select(r => new ApprovalTaskDto(
                 r.Id, r.DocumentType, r.DocumentId, r.DocumentNumber, r.Title, r.Amount,
                 names[r.RequestedBy], r.RequestedAt,
-                r.CurrentStep!.Name, r.CurrentStep.Sequence, r.Steps.Count));
+                r.CurrentStep!.Name, r.CurrentStep.Sequence, r.Steps.Count, r.OverBudget));
         });
 
         group.MapGet("/documents/{documentType}/{documentId:guid}", async (string documentType, Guid documentId,

@@ -33,7 +33,8 @@ internal sealed class ApprovalService(
             ?? throw new NotFoundException($"User {subject.RequestedBy} was not found.");
 
         var policy = await db.PolicySteps.AsNoTracking()
-            .Where(p => p.DocumentType == subject.DocumentType && p.IsActive && subject.Amount > p.MinAmount)
+            .Where(p => p.DocumentType == subject.DocumentType && p.IsActive && subject.Amount > p.MinAmount
+                        && (!p.OverBudgetOnly || subject.OverBudget))
             .OrderBy(p => p.Sequence)
             .ToListAsync(ct);
 
@@ -49,7 +50,7 @@ internal sealed class ApprovalService(
         }
 
         db.Requests.Add(new ApprovalRequest(subject.DocumentType, subject.DocumentId, subject.DocumentNumber,
-            subject.Title, subject.Amount, subject.RequestedBy, Now, approvers));
+            subject.Title, subject.Amount, subject.RequestedBy, Now, approvers, subject.OverBudget));
         await db.SaveChangesAsync(ct);
     }
 

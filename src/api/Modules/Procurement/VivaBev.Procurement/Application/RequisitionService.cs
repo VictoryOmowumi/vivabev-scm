@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VivaBev.Approvals.Contracts;
 using VivaBev.Catalogue.Contracts;
+using VivaBev.Finance.Contracts;
 using VivaBev.Identity.Contracts;
 using VivaBev.Infrastructure.Persistence;
 using VivaBev.Procurement.Contracts;
@@ -19,6 +20,7 @@ internal sealed class RequisitionService(
     ICatalogueQueries catalogue,
     IUserDirectory users,
     IApprovals approvals,
+    IBudgets budgets,
     CrossModuleTransaction transaction,
     ICurrentUser currentUser,
     TimeProvider clock)
@@ -105,12 +107,15 @@ internal sealed class RequisitionService(
         transaction.RunAsync(async () =>
         {
             var requisition = await LoadOwnAsync(requisitionId, ct);
+
+            var check = await budgets.CheckAsync(requisition.CostCentreId, Now, requisition.EstimatedTotal, ct);
+            requisition.RecordBudgetCheck(check.FiscalYear, check.Available, check.IsOverBudget);
             requisition.Submit(Now);
             await db.SaveChangesAsync(ct);
 
             await approvals.StartAsync(new ApprovalSubject(
                 Requisition.ApprovalDocumentType, requisition.Id, requisition.Number, requisition.Title,
-                requisition.EstimatedTotal, requisition.RequesterId), ct);
+                requisition.EstimatedTotal, requisition.RequesterId, OverBudget: check.IsOverBudget), ct);
         }, ct);
 
     public Task CancelAsync(Guid requisitionId, string reason, CancellationToken ct) =>
@@ -120,6 +125,9 @@ internal sealed class RequisitionService(
 
             if (requisition.Status == RequisitionStatus.PendingApproval)
                 await approvals.WithdrawAsync(Requisition.ApprovalDocumentType, requisition.Id, ct);
+
+            if (requisition.Status == RequisitionStatus.Approved)
+                await budgets.ReleaseAsync(Requisition.ApprovalDocumentType, requisition.Id, ct);
 
             requisition.Cancel(reason);
             await db.SaveChangesAsync(ct);

@@ -6,4 +6,6 @@ public interface IOrganisationQueries
     Task<CostCentreDto?> GetCostCentreAsync(Guid costCentreId, CancellationToken ct = default);
 
     Task<SiteDto?> GetSiteAsync(Guid siteId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<CostCentreDto>> GetCostCentresAsync(CancellationToken ct = default);
 }

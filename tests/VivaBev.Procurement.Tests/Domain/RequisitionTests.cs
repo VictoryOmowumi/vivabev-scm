@@ -94,6 +94,20 @@ public class RequisitionTests
     public void Only_a_pending_requisition_can_be_marked_approved() =>
         Assert.Throws<DomainException>(() => NewDraft().MarkApproved(Now));
 
+    [Fact]
+    public void The_budget_check_is_recorded_only_while_drafting()
+    {
+        var requisition = NewDraft();
+        requisition.AddLine(LineType.Goods, null, null, "Laptop", Category, 5, "EA", 850_000m);
+
+        requisition.RecordBudgetCheck(2027, 3_500_000m, isOverBudget: true);
+        requisition.Submit(Now);
+
+        Assert.Equal(BudgetStatus.OverBudget, requisition.BudgetStatus);
+        Assert.Equal(3_500_000m, requisition.BudgetAvailableAtSubmit);
+        Assert.Throws<DomainException>(() => requisition.RecordBudgetCheck(2027, 0m, isOverBudget: true));
+    }
+
     [Theory]
     [InlineData(2026, 6, 30, 2026)]
     [InlineData(2026, 7, 1, 2027)]

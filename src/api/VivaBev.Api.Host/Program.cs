@@ -1,6 +1,7 @@
 using VivaBev.Api.Host;
 using VivaBev.Approvals;
 using VivaBev.Catalogue;
+using VivaBev.Finance;
 using VivaBev.Identity;
 using VivaBev.Infrastructure.Persistence;
 using VivaBev.Numbering;
@@ -26,6 +27,7 @@ builder.Services.AddIdentityModule(builder.Configuration);
 builder.Services.AddCatalogueModule(builder.Configuration);
 builder.Services.AddSuppliersModule(builder.Configuration);
 builder.Services.AddProcurementModule(builder.Configuration);
+builder.Services.AddFinanceModule(builder.Configuration);
 
 var app = builder.Build();
 
@@ -36,6 +38,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
     await app.Services.SeedIdentityAsync();
+    await app.Services.SeedFinanceAsync();
     await app.Services.SeedApprovalsAsync();
     await app.Services.SeedCatalogueAsync();
     await app.Services.SeedSuppliersAsync();
@@ -51,5 +54,6 @@ app.MapCatalogueEndpoints();
 app.MapSuppliersEndpoints();
 app.MapProcurementEndpoints();
 app.MapApprovalsEndpoints();
+app.MapFinanceEndpoints();
 
 app.Run();

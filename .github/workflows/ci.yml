@@ -61,6 +61,8 @@ jobs:
             --project src/api/Modules/Procurement/VivaBev.Procurement --startup-project $api --context ProcurementDbContext
           dotnet ef migrations has-pending-model-changes --no-build --configuration Release \
             --project src/api/Shared/VivaBev.Approvals --startup-project $api --context ApprovalsDbContext
+          dotnet ef migrations has-pending-model-changes --no-build --configuration Release \
+            --project src/api/Modules/Finance/VivaBev.Finance --startup-project $api --context FinanceDbContext
 
       - name: Upload test results
         if: always()

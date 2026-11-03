@@ -7,7 +7,7 @@ public sealed class ApprovalPolicyStep : AggregateRoot
     private ApprovalPolicyStep() { }
 
     public ApprovalPolicyStep(string documentType, int sequence, string name, decimal minAmount,
-        ApproverRule rule, string? roleName = null)
+        ApproverRule rule, string? roleName = null, bool overBudgetOnly = false)
     {
         if (sequence < 1)
             throw new DomainException("Sequence starts at 1.");
@@ -22,6 +22,7 @@ public sealed class ApprovalPolicyStep : AggregateRoot
         MinAmount = minAmount;
         Rule = rule;
         RoleName = string.IsNullOrWhiteSpace(roleName) ? null : roleName.Trim();
+        OverBudgetOnly = overBudgetOnly;
     }
 
     public string DocumentType { get; private set; } = null!;
@@ -33,6 +34,10 @@ public sealed class ApprovalPolicyStep : AggregateRoot
 
     public ApproverRule Rule { get; private set; }
     public string? RoleName { get; private set; }
+
+    /// <summary>The step only applies when the document is over budget.</summary>
+    public bool OverBudgetOnly { get; private set; }
+
     public bool IsActive { get; private set; } = true;
 
     public void Deactivate() => IsActive = false;
