@@ -30,6 +30,7 @@ public static class FinanceModule
     {
         using var scope = services.CreateScope();
         var sp = scope.ServiceProvider;
-        await BudgetSeeder.SeedAsync(sp.GetRequiredService<FinanceDbContext>(), sp.GetRequiredService<IOrganisationQueries>(), ct);
+        await BudgetSeeder.SeedAsync(sp.GetRequiredService<FinanceDbContext>(), sp.GetRequiredService<IOrganisationQueries>(),
+            sp.GetRequiredService<TimeProvider>(), ct);
     }
 }

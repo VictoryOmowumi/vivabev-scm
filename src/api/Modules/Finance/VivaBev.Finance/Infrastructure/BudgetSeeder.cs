@@ -1,12 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using VivaBev.Finance.Domain;
 using VivaBev.Identity.Contracts;
+using VivaBev.SharedKernel.Time;
 
 namespace VivaBev.Finance.Infrastructure;
 
 internal static class BudgetSeeder
 {
-    private const int CurrentFiscalYear = 2027;
     private const decimal DefaultBudget = 10_000_000m;
 
     private static readonly Dictionary<string, decimal> Amounts = new()
@@ -29,10 +29,13 @@ internal static class BudgetSeeder
         ["CC-FIN-TRY"] = 10_000_000m,
     };
 
-    public static async Task SeedAsync(FinanceDbContext db, IOrganisationQueries organisation, CancellationToken ct = default)
+    public static async Task SeedAsync(FinanceDbContext db, IOrganisationQueries organisation, TimeProvider clock,
+        CancellationToken ct = default)
     {
+        var currentFiscalYear = FiscalCalendar.FiscalYearOf(clock.GetUtcNow().UtcDateTime);
+
         var existing = await db.Budgets
-            .Where(b => b.FiscalYear == CurrentFiscalYear)
+            .Where(b => b.FiscalYear == currentFiscalYear)
             .Select(b => b.CostCentreId)
             .ToListAsync(ct);
 
@@ -42,7 +45,7 @@ internal static class BudgetSeeder
                 continue;
 
             var amount = Amounts.GetValueOrDefault(costCentre.Code, DefaultBudget);
-            db.Budgets.Add(new Budget(costCentre.Id, CurrentFiscalYear, amount));
+            db.Budgets.Add(new Budget(costCentre.Id, currentFiscalYear, amount));
         }
 
         await db.SaveChangesAsync(ct);
