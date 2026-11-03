@@ -3,7 +3,8 @@ namespace VivaBev.Procurement.Domain.Requisitions;
 public enum RequisitionStatus
 {
     Draft,
-    Submitted,
+    PendingApproval,
+    Approved,
     Cancelled
 }
 

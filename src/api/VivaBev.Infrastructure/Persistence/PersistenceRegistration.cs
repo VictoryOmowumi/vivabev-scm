@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,6 +12,7 @@ public static class PersistenceRegistration
     {
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<AuditingInterceptor>();
+        services.AddScoped<CrossModuleTransaction>();
         return services;
     }
 
@@ -21,9 +23,12 @@ public static class PersistenceRegistration
         var connectionString = configuration.GetConnectionString("VivaBev")
             ?? throw new InvalidOperationException("Connection string 'VivaBev' is not configured.");
 
+        // One connection per request, shared by every module's DbContext.
+        services.TryAddScoped(_ => new SqlConnection(connectionString));
+
         services.AddDbContext<TContext>((serviceProvider, options) =>
         {
-            options.UseSqlServer(connectionString, sql =>
+            options.UseSqlServer(serviceProvider.GetRequiredService<SqlConnection>(), sql =>
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", schema));
             options.AddInterceptors(serviceProvider.GetRequiredService<AuditingInterceptor>());
         });

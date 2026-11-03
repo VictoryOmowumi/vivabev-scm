@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using VivaBev.Approvals.Contracts;
 using VivaBev.Catalogue.Contracts;
 using VivaBev.Identity.Contracts;
+using VivaBev.Infrastructure.Persistence;
 using VivaBev.Procurement.Contracts;
 using VivaBev.Procurement.Domain.Requisitions;
 using VivaBev.Procurement.Infrastructure;
@@ -16,6 +18,8 @@ internal sealed class RequisitionService(
     IOrganisationQueries organisation,
     ICatalogueQueries catalogue,
     IUserDirectory users,
+    IApprovals approvals,
+    CrossModuleTransaction transaction,
     ICurrentUser currentUser,
     TimeProvider clock)
 {
@@ -97,20 +101,29 @@ internal sealed class RequisitionService(
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task SubmitAsync(Guid requisitionId, CancellationToken ct)
-    {
-        var requisition = await LoadOwnAsync(requisitionId, ct);
-        requisition.Submit(Now);
-        // Next guides: budget check (Finance) and approval routing (Approvals) happen here.
-        await db.SaveChangesAsync(ct);
-    }
+    public Task SubmitAsync(Guid requisitionId, CancellationToken ct) =>
+        transaction.RunAsync(async () =>
+        {
+            var requisition = await LoadOwnAsync(requisitionId, ct);
+            requisition.Submit(Now);
+            await db.SaveChangesAsync(ct);
 
-    public async Task CancelAsync(Guid requisitionId, string reason, CancellationToken ct)
-    {
-        var requisition = await LoadOwnAsync(requisitionId, ct);
-        requisition.Cancel(reason);
-        await db.SaveChangesAsync(ct);
-    }
+            await approvals.StartAsync(new ApprovalSubject(
+                Requisition.ApprovalDocumentType, requisition.Id, requisition.Number, requisition.Title,
+                requisition.EstimatedTotal, requisition.RequesterId), ct);
+        }, ct);
+
+    public Task CancelAsync(Guid requisitionId, string reason, CancellationToken ct) =>
+        transaction.RunAsync(async () =>
+        {
+            var requisition = await LoadOwnAsync(requisitionId, ct);
+
+            if (requisition.Status == RequisitionStatus.PendingApproval)
+                await approvals.WithdrawAsync(Requisition.ApprovalDocumentType, requisition.Id, ct);
+
+            requisition.Cancel(reason);
+            await db.SaveChangesAsync(ct);
+        }, ct);
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
     private DateOnly Today => DateOnly.FromDateTime(Now);

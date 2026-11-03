@@ -16,35 +16,46 @@ internal static class UserSeeder
     {
         await SyncRolesAsync(roles);
 
-        if (await users.Users.AnyAsync(ct))
-            return;
-
         var departments = await db.Departments.AsNoTracking().ToDictionaryAsync(d => d.Code, d => d.Id, ct);
         var sites = await db.Sites.AsNoTracking().ToDictionaryAsync(s => s.Code, s => s.Id, ct);
 
-        (string Email, string Name, string Role, string Department, string Site, string Title)[] demo =
+        (string Email, string Name, string Role, string Department, string Site, string Title, string? Manager)[] demo =
         [
-            ("admin@vivabev.example", "Tolu Adebayo", RoleDefinitions.Administrator, "IT", "HQ-LAG", "Systems administrator"),
-            ("requester@vivabev.example", "Chinedu Okeke", RoleDefinitions.Requester, "IT", "HQ-LAG", "IT analyst"),
-            ("manager@vivabev.example", "Funmi Adeleke", RoleDefinitions.DepartmentManager, "IT", "HQ-LAG", "Head of IT"),
-            ("buyer@vivabev.example", "Yusuf Bello", RoleDefinitions.ProcurementOfficer, "SCM", "HQ-LAG", "Procurement officer"),
-            ("procurement.manager@vivabev.example", "Grace Etim", RoleDefinitions.ProcurementManager, "SCM", "HQ-LAG", "Procurement manager"),
-            ("warehouse@vivabev.example", "Samuel Odu", RoleDefinitions.WarehouseOfficer, "SCM", "WH-01", "Warehouse officer"),
-            ("finance@vivabev.example", "Amaka Nwachukwu", RoleDefinitions.FinanceOfficer, "FIN", "HQ-LAG", "Finance officer"),
+            ("md@vivabev.example", "Babatunde Ogunleye", RoleDefinitions.Executive, "FIN", "HQ-LAG", "Managing Director", null),
+            ("admin@vivabev.example", "Tolu Adebayo", RoleDefinitions.Administrator, "IT", "HQ-LAG", "Systems administrator", null),
+            ("manager@vivabev.example", "Funmi Adeleke", RoleDefinitions.DepartmentManager, "IT", "HQ-LAG", "Head of IT", "md@vivabev.example"),
+            ("requester@vivabev.example", "Chinedu Okeke", RoleDefinitions.Requester, "IT", "HQ-LAG", "IT analyst", "manager@vivabev.example"),
+            ("procurement.manager@vivabev.example", "Grace Etim", RoleDefinitions.ProcurementManager, "SCM", "HQ-LAG", "Procurement manager", "md@vivabev.example"),
+            ("buyer@vivabev.example", "Yusuf Bello", RoleDefinitions.ProcurementOfficer, "SCM", "HQ-LAG", "Procurement officer", "procurement.manager@vivabev.example"),
+            ("warehouse@vivabev.example", "Samuel Odu", RoleDefinitions.WarehouseOfficer, "SCM", "WH-01", "Warehouse officer", "procurement.manager@vivabev.example"),
+            ("finance@vivabev.example", "Amaka Nwachukwu", RoleDefinitions.FinanceOfficer, "FIN", "HQ-LAG", "Finance officer", "md@vivabev.example"),
         ];
 
-        var created = new Dictionary<string, AppUser>();
+        // 1. Create any demo user who doesn't exist yet
         foreach (var person in demo)
         {
+            if (await users.FindByEmailAsync(person.Email) is not null)
+                continue;
+
             var user = new AppUser(person.Email, person.Name, departments[person.Department], sites[person.Site], person.Title);
             Check(await users.CreateAsync(user, DemoPassword));
             Check(await users.AddToRoleAsync(user, person.Role));
-            created[person.Email] = user;
         }
 
-        var requester = created["requester@vivabev.example"];
-        requester.SetManager(created["manager@vivabev.example"].Id);
-        Check(await users.UpdateAsync(requester));
+        // 2. Link managers, without overwriting one someone has set since
+        foreach (var person in demo.Where(p => p.Manager is not null))
+        {
+            var user = await users.FindByEmailAsync(person.Email);
+            if (user is null || user.ManagerId is not null)
+                continue;
+
+            var manager = await users.FindByEmailAsync(person.Manager!);
+            if (manager is null)
+                continue;
+
+            user.SetManager(manager.Id);
+            Check(await users.UpdateAsync(user));
+        }
     }
 
     /// <summary>Makes each role's permission claims match RoleDefinitions exactly, every startup.</summary>

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using VivaBev.Approvals.Contracts;
 using VivaBev.Infrastructure.Persistence;
 using VivaBev.Procurement.Application;
 using VivaBev.Procurement.Endpoints;
@@ -14,6 +15,7 @@ public static class ProcurementModule
     {
         services.AddModuleDbContext<ProcurementDbContext>(configuration, ProcurementDbContext.SchemaName);
         services.AddScoped<RequisitionService>();
+        services.AddScoped<IApprovalOutcomeHandler, RequisitionApprovalHandler>();
         return services;
     }
 
