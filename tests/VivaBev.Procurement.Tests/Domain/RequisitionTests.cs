@@ -71,10 +71,28 @@ public class RequisitionTests
         requisition.AddLine(LineType.Goods, null, null, "Laptop", Category, 1, "EA", 850_000m);
         requisition.Submit(Now);
 
-        Assert.Equal(RequisitionStatus.Submitted, requisition.Status);
+        Assert.Equal(RequisitionStatus.PendingApproval, requisition.Status);
         Assert.Throws<DomainException>(() =>
             requisition.AddLine(LineType.Goods, null, null, "Mouse", Category, 1, "EA", 15_000m));
     }
+
+    [Fact]
+    public void A_rejected_requisition_returns_to_draft_with_the_reason()
+    {
+        var requisition = NewDraft();
+        requisition.AddLine(LineType.Goods, null, null, "Laptop", Category, 1, "EA", 850_000m);
+        requisition.Submit(Now);
+
+        requisition.MarkRejected("Use the spare laptops in stores");
+
+        Assert.Equal(RequisitionStatus.Draft, requisition.Status);
+        Assert.Equal("Use the spare laptops in stores", requisition.RejectionReason);
+        requisition.AddLine(LineType.Goods, null, null, "Docking station", Category, 1, "EA", 95_000m); // editable again
+    }
+
+    [Fact]
+    public void Only_a_pending_requisition_can_be_marked_approved() =>
+        Assert.Throws<DomainException>(() => NewDraft().MarkApproved(Now));
 
     [Theory]
     [InlineData(2026, 6, 30, 2026)]

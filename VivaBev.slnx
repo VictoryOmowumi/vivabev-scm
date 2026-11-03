@@ -38,6 +38,7 @@
     <Project Path="src/api/Shared/VivaBev.Numbering/VivaBev.Numbering.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/VivaBev.Approvals.Tests/VivaBev.Approvals.Tests.csproj" />
     <Project Path="tests/VivaBev.ArchitectureTests/VivaBev.ArchitectureTests.csproj" />
     <Project Path="tests/VivaBev.Catalogue.Tests/VivaBev.Catalogue.Tests.csproj" />
     <Project Path="tests/VivaBev.Finance.Tests/VivaBev.Finance.Tests.csproj" />

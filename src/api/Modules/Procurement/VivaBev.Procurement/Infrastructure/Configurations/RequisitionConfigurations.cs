@@ -16,6 +16,7 @@ internal sealed class RequisitionConfiguration : IEntityTypeConfiguration<Requis
         builder.Property(r => r.Justification).HasMaxLength(1000);
         builder.Property(r => r.CurrencyCode).HasMaxLength(3).IsFixedLength();
         builder.Property(r => r.CancellationReason).HasMaxLength(500);
+        builder.Property(r => r.RejectionReason).HasMaxLength(500);
         builder.HasIndex(r => r.RequesterId);
         builder.HasIndex(r => r.Status);
 

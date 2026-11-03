@@ -3,9 +3,11 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using VivaBev.Approvals.Contracts;
 using VivaBev.Identity.Contracts;
 using VivaBev.Procurement.Application;
 using VivaBev.Procurement.Contracts;
+using VivaBev.Procurement.Domain.Requisitions;
 using VivaBev.Procurement.Infrastructure;
 using VivaBev.SharedKernel.Abstractions;
 using VivaBev.SharedKernel.Security;
@@ -41,7 +43,8 @@ internal static class RequisitionEndpoints
         });
 
         group.MapGet("/{id:guid}", async (Guid id, ClaimsPrincipal principal, ICurrentUser currentUser,
-            ProcurementDbContext db, IOrganisationQueries organisation, IUserDirectory users, CancellationToken ct) =>
+            ProcurementDbContext db, IOrganisationQueries organisation, IUserDirectory users, IApprovals approvals,
+            CancellationToken ct) =>
         {
             var r = await db.Requisitions.AsNoTracking()
                 .Include(x => x.Lines)
@@ -50,8 +53,12 @@ internal static class RequisitionEndpoints
             if (r is null)
                 return Results.NotFound();
 
-            var isOwner = r.RequesterId == currentUser.UserId;
-            if (!isOwner && !principal.HasClaim(Permissions.ClaimType, Permissions.Requisitions.ViewAll))
+            var userId = currentUser.UserId;
+            var allowed = r.RequesterId == userId
+                || principal.HasClaim(Permissions.ClaimType, Permissions.Requisitions.ViewAll)
+                || (userId is { } signedIn && await approvals.IsApproverAsync(Requisition.ApprovalDocumentType, r.Id, signedIn, ct));
+
+            if (!allowed)
                 return Results.Forbid();
 
             var requester = await users.GetUserAsync(r.RequesterId, ct);
@@ -63,6 +70,7 @@ internal static class RequisitionEndpoints
                 r.RequesterId, requester?.DisplayName ?? "(unknown user)",
                 costCentre?.Code ?? "?", site?.Code ?? "?",
                 r.RequiredBy, r.CurrencyCode, r.EstimatedTotal, r.SubmittedAt, r.CancellationReason,
+                r.RejectionReason, r.ApprovedAt,
                 r.Lines.OrderBy(l => l.LineNo)
                     .Select(l => new RequisitionLineDto(
                         l.LineNo, l.LineType.ToString(), l.ItemId, l.ItemCode, l.Description, l.CategoryId,

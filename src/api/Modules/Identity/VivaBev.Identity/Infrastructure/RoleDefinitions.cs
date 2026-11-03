@@ -10,6 +10,7 @@ internal static class RoleDefinitions
     public const string ProcurementManager = "ProcurementManager";
     public const string WarehouseOfficer = "WarehouseOfficer";
     public const string FinanceOfficer = "FinanceOfficer";
+    public const string Executive = "Executive";
     public const string Administrator = "Administrator";
 
     private static readonly string[] Basic =
@@ -28,6 +29,8 @@ internal static class RoleDefinitions
              Permissions.Requisitions.ViewAll]),
         (WarehouseOfficer, "Receives, stores and issues stock", Basic),
         (FinanceOfficer, "Budgets, invoices and matching",
+            [.. Basic, Permissions.Requisitions.ViewAll]),
+        (Executive, "Managing Director; final approver for large spend",
             [.. Basic, Permissions.Requisitions.ViewAll]),
         (Administrator, "Configures the system; holds every permission", [.. Permissions.All]),
     ];

@@ -97,3 +97,145 @@ Content-Type: application/json
 
 ###
 GET {{host}}/api/requisitions
+
+#####################################################################
+# Approvals walkthrough
+#####################################################################
+
+### ---------- As Chinedu, the requester ----------
+POST {{host}}/api/auth/logout
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "requester@vivabev.example", "password": "Demo@2026!" }
+
+### A small requisition: 3 laptops, ₦2,550,000
+# @name small
+POST {{host}}/api/requisitions
+Content-Type: application/json
+
+{ "title": "Laptops for new analysts", "justification": "Three analysts join in November",
+  "costCentreId": "{{itOps}}", "deliverToSiteId": "{{hq}}", "requiredBy": "2026-12-15" }
+
+###
+POST {{host}}/api/requisitions/{{small.response.body.id}}/lines
+Content-Type: application/json
+
+{ "itemId": "{{laptop}}", "quantity": 3, "estimatedUnitPrice": 850000 }
+
+###
+POST {{host}}/api/requisitions/{{small.response.body.id}}/submit
+
+### Its approval chain: one step, Funmi
+# @name smallTrail
+GET {{host}}/api/approvals/documents/Requisition/{{small.response.body.id}}
+
+### Chinedu can't approve: expect 403
+POST {{host}}/api/approvals/{{smallTrail.response.body.requestId}}/approve
+Content-Type: application/json
+
+{ "comment": "Approving my own request" }
+
+### A large requisition: 40 laptops, ₦34,000,000
+# @name large
+POST {{host}}/api/requisitions
+Content-Type: application/json
+
+{ "title": "Laptop refresh for IT", "justification": "Replace 40 laptops past warranty",
+  "costCentreId": "{{itOps}}", "deliverToSiteId": "{{hq}}", "requiredBy": "2027-01-31" }
+
+###
+POST {{host}}/api/requisitions/{{large.response.body.id}}/lines
+Content-Type: application/json
+
+{ "itemId": "{{laptop}}", "quantity": 40, "estimatedUnitPrice": 850000 }
+
+###
+POST {{host}}/api/requisitions/{{large.response.body.id}}/submit
+
+### Two steps: Funmi (line manager, also head of department) then the Managing Director
+# @name largeTrail
+GET {{host}}/api/approvals/documents/Requisition/{{large.response.body.id}}
+
+### ---------- As Funmi, Head of IT ----------
+POST {{host}}/api/auth/logout
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "manager@vivabev.example", "password": "Demo@2026!" }
+
+### Her inbox: both requisitions
+GET {{host}}/api/approvals/inbox
+
+### She can open a requisition she's approving (no view-all permission needed)
+GET {{host}}/api/requisitions/{{small.response.body.id}}
+
+### Approve both
+POST {{host}}/api/approvals/{{smallTrail.response.body.requestId}}/approve
+Content-Type: application/json
+
+{ "comment": "Approved" }
+
+###
+POST {{host}}/api/approvals/{{largeTrail.response.body.requestId}}/approve
+Content-Type: application/json
+
+{ "comment": "Needed, but check the quantity" }
+
+### ---------- As the Managing Director ----------
+POST {{host}}/api/auth/logout
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "md@vivabev.example", "password": "Demo@2026!" }
+
+###
+GET {{host}}/api/approvals/inbox
+
+### Reject without a reason: expect 400
+POST {{host}}/api/approvals/{{largeTrail.response.body.requestId}}/reject
+Content-Type: application/json
+
+{ }
+
+### Reject with a reason
+POST {{host}}/api/approvals/{{largeTrail.response.body.requestId}}/reject
+Content-Type: application/json
+
+{ "comment": "Replace 10 now and 30 next fiscal year" }
+
+### ---------- Back as Chinedu ----------
+POST {{host}}/api/auth/logout
+
+###
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "requester@vivabev.example", "password": "Demo@2026!" }
+
+### Small: Approved. Large: Draft, with the MD's reason
+GET {{host}}/api/requisitions/{{small.response.body.id}}
+
+###
+GET {{host}}/api/requisitions/{{large.response.body.id}}
+
+### Fix it: 10 laptops instead of 40 (₦8,500,000), and resubmit
+DELETE {{host}}/api/requisitions/{{large.response.body.id}}/lines/1
+
+###
+POST {{host}}/api/requisitions/{{large.response.body.id}}/lines
+Content-Type: application/json
+
+{ "itemId": "{{laptop}}", "quantity": 10, "estimatedUnitPrice": 850000 }
+
+###
+POST {{host}}/api/requisitions/{{large.response.body.id}}/submit
+
+### Now one step: the policy adds head of department above ₦5m, but that's Funmi again, so she appears once
+GET {{host}}/api/approvals/documents/Requisition/{{large.response.body.id}}

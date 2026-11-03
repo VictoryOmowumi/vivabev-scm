@@ -5,6 +5,7 @@
     <ProjectReference Include="..\..\..\VivaBev.Infrastructure\VivaBev.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Catalogue\VivaBev.Catalogue.Contracts\VivaBev.Catalogue.Contracts.csproj" />
     <ProjectReference Include="..\..\Identity\VivaBev.Identity.Contracts\VivaBev.Identity.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\Shared\VivaBev.Approvals\VivaBev.Approvals.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -2,10 +2,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\VivaBev.SharedKernel\VivaBev.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\VivaBev.Infrastructure\VivaBev.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Identity\VivaBev.Identity.Contracts\VivaBev.Identity.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.14" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <PropertyGroup>

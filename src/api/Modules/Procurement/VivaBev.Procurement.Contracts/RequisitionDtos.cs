@@ -42,4 +42,6 @@ public sealed record RequisitionDetailDto(
     decimal EstimatedTotal,
     DateTime? SubmittedAt,
     string? CancellationReason,
+    string? RejectionReason,
+    DateTime? ApprovedAt,
     IReadOnlyList<RequisitionLineDto> Lines);

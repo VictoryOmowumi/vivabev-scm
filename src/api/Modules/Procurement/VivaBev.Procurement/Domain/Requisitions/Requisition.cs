@@ -4,6 +4,8 @@ namespace VivaBev.Procurement.Domain.Requisitions;
 
 public sealed class Requisition : AggregateRoot
 {
+    public const string ApprovalDocumentType = "Requisition";
+
     private readonly List<RequisitionLine> _lines = [];
 
     private Requisition() { }
@@ -39,6 +41,8 @@ public sealed class Requisition : AggregateRoot
     public RequisitionStatus Status { get; private set; }
     public DateTime? SubmittedAt { get; private set; }
     public string? CancellationReason { get; private set; }
+    public DateTime? ApprovedAt { get; private set; }
+    public string? RejectionReason { get; private set; }
 
     public IReadOnlyCollection<RequisitionLine> Lines => _lines.AsReadOnly();
 
@@ -76,8 +80,30 @@ public sealed class Requisition : AggregateRoot
         if (RequiredBy < DateOnly.FromDateTime(now))
             throw new DomainException("The required-by date has passed.");
 
-        Status = RequisitionStatus.Submitted;
+        Status = RequisitionStatus.PendingApproval;
         SubmittedAt = now;
+        RejectionReason = null;
+    }
+
+    public void MarkApproved(DateTime now)
+    {
+        RequirePendingApproval("approve");
+        Status = RequisitionStatus.Approved;
+        ApprovedAt = now;
+    }
+
+    public void MarkRejected(string reason)
+    {
+        RequirePendingApproval("reject");
+        Status = RequisitionStatus.Draft;
+        SubmittedAt = null;
+        RejectionReason = Guard.Required(reason, nameof(reason), 500);
+    }
+
+    private void RequirePendingApproval(string action)
+    {
+        if (Status != RequisitionStatus.PendingApproval)
+            throw new DomainException($"Cannot {action} a requisition that is {Status}.");
     }
 
     public void Cancel(string reason)
