@@ -9,7 +9,8 @@ public sealed class ApprovalRequest : AggregateRoot
     private ApprovalRequest() { }
 
     public ApprovalRequest(string documentType, Guid documentId, string documentNumber, string title,
-        decimal amount, Guid requestedBy, DateTime requestedAt, IEnumerable<(string Name, Guid ApproverId)> approvers)
+        decimal amount, Guid requestedBy, DateTime requestedAt, IEnumerable<(string Name, Guid ApproverId)> approvers,
+        bool overBudget = false)
     {
         DocumentType = Guard.Required(documentType, nameof(documentType), 30);
         DocumentId = documentId;
@@ -18,6 +19,7 @@ public sealed class ApprovalRequest : AggregateRoot
         Amount = amount;
         RequestedBy = requestedBy;
         RequestedAt = requestedAt;
+        OverBudget = overBudget;
         Status = ApprovalStatus.Pending;
 
         // Segregation of duties: never the requester, and each person only once.
@@ -41,6 +43,7 @@ public sealed class ApprovalRequest : AggregateRoot
     public decimal Amount { get; private set; }
     public Guid RequestedBy { get; private set; }
     public DateTime RequestedAt { get; private set; }
+    public bool OverBudget { get; private set; }
     public ApprovalStatus Status { get; private set; }
     public DateTime? CompletedAt { get; private set; }
 

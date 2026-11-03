@@ -8,6 +8,13 @@ public enum RequisitionStatus
     Cancelled
 }
 
+public enum BudgetStatus
+{
+    NotChecked,
+    WithinBudget,
+    OverBudget
+}
+
 public enum LineType
 {
     Goods,

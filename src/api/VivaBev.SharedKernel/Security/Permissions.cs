@@ -30,11 +30,18 @@ public static class Permissions
         public const string ViewAll = "requisitions.view-all";  // see everyone's
     }
 
+    public static class Finance
+    {
+        public const string ViewBudgets = "finance.budgets.view";
+        public const string ManageBudgets = "finance.budgets.manage";
+    }
+
     public static readonly IReadOnlyList<string> All =
     [
         Catalogue.View, Catalogue.Manage,
         Suppliers.View, Suppliers.Manage, Suppliers.Approve,
         Organisation.View, Organisation.Manage,
         Requisitions.Create, Requisitions.ViewAll,
+        Finance.ViewBudgets, Finance.ManageBudgets,
     ];
 }

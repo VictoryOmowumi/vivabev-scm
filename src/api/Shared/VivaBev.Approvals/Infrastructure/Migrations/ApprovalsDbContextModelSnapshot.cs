@@ -51,6 +51,9 @@ namespace VivaBev.Approvals.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("OverBudgetOnly")
+                        .HasColumnType("bit");
+
                     b.Property<string>("RoleName")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -113,6 +116,9 @@ namespace VivaBev.Approvals.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<bool>("OverBudget")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("RequestedAt")
                         .HasColumnType("datetime2");

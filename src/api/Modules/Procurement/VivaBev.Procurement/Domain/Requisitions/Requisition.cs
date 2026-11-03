@@ -43,6 +43,9 @@ public sealed class Requisition : AggregateRoot
     public string? CancellationReason { get; private set; }
     public DateTime? ApprovedAt { get; private set; }
     public string? RejectionReason { get; private set; }
+    public BudgetStatus BudgetStatus { get; private set; } = BudgetStatus.NotChecked;
+    public int? BudgetFiscalYear { get; private set; }
+    public decimal? BudgetAvailableAtSubmit { get; private set; }
 
     public IReadOnlyCollection<RequisitionLine> Lines => _lines.AsReadOnly();
 
@@ -69,6 +72,14 @@ public sealed class Requisition : AggregateRoot
 
         _lines.Remove(line);
         RecalculateTotal();
+    }
+
+    public void RecordBudgetCheck(int fiscalYear, decimal available, bool isOverBudget)
+    {
+        EnsureDraft("record a budget check on");
+        BudgetFiscalYear = fiscalYear;
+        BudgetAvailableAtSubmit = available;
+        BudgetStatus = isOverBudget ? BudgetStatus.OverBudget : BudgetStatus.WithinBudget;
     }
 
     public void Submit(DateTime now)

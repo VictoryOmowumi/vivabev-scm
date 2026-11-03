@@ -44,4 +44,6 @@ public sealed record RequisitionDetailDto(
     string? CancellationReason,
     string? RejectionReason,
     DateTime? ApprovedAt,
+    string BudgetStatus,
+    decimal? BudgetAvailableAtSubmit,
     IReadOnlyList<RequisitionLineDto> Lines);

@@ -20,6 +20,19 @@ internal sealed class OrganisationQueries(IdentityModuleDbContext db) : IOrganis
                 x.CostCentre.IsActive && x.Department.IsActive))
             .SingleOrDefaultAsync(ct);
 
+    public async Task<IReadOnlyList<CostCentreDto>> GetCostCentresAsync(CancellationToken ct = default) =>
+        await db.Departments.AsNoTracking()
+            .SelectMany(d => d.CostCentres, (d, c) => new { Department = d, CostCentre = c })
+            .OrderBy(x => x.CostCentre.Code)
+            .Select(x => new CostCentreDto(
+                x.CostCentre.Id,
+                x.CostCentre.Code,
+                x.CostCentre.Name,
+                x.Department.Id,
+                x.Department.Code,
+                x.CostCentre.IsActive && x.Department.IsActive))
+            .ToListAsync(ct);
+
     public async Task<SiteDto?> GetSiteAsync(Guid siteId, CancellationToken ct = default)
     {
         var row = await db.Sites.AsNoTracking()
