@@ -28,18 +28,8 @@ internal sealed class RequisitionService(
     public async Task<(Guid Id, string Number)> CreateAsync(CreateRequisitionRequest request, CancellationToken ct)
     {
         var requester = await CurrentRequesterAsync(ct);
-
-        var costCentre = await organisation.GetCostCentreAsync(request.CostCentreId, ct)
-            ?? throw new NotFoundException($"Cost centre {request.CostCentreId} was not found.");
-        if (!costCentre.IsActive)
-            throw new DomainException($"Cost centre {costCentre.Code} is inactive.");
-        if (costCentre.DepartmentId != requester.DepartmentId)
-            throw new DomainException($"Cost centre {costCentre.Code} belongs to another department.");
-
-        var site = await organisation.GetSiteAsync(request.DeliverToSiteId, ct)
-            ?? throw new NotFoundException($"Site {request.DeliverToSiteId} was not found.");
-        if (!site.IsActive)
-            throw new DomainException($"Site {site.Code} is inactive.");
+        var (costCentre, site) = await ValidateDestinationAsync(requester, request.CostCentreId,
+            request.DeliverToSiteId, ct);
 
         var number = await numbers.NextAsync("REQ", ct);
         var requisition = new Requisition(number, request.Title, request.Justification, requester.Id,
@@ -48,6 +38,18 @@ internal sealed class RequisitionService(
         db.Requisitions.Add(requisition);
         await db.SaveChangesAsync(ct);
         return (requisition.Id, requisition.Number);
+    }
+
+    public async Task UpdateAsync(Guid requisitionId, UpdateRequisitionRequest request, CancellationToken ct)
+    {
+        var requester = await CurrentRequesterAsync(ct);
+        var requisition = await LoadOwnAsync(requisitionId, ct);
+        var (costCentre, site) = await ValidateDestinationAsync(requester, request.CostCentreId,
+            request.DeliverToSiteId, ct);
+
+        requisition.UpdateDetails(request.Title, request.Justification, costCentre.Id, site.Id,
+            request.RequiredBy, Today);
+        await db.SaveChangesAsync(ct);
     }
 
     public async Task<int> AddLineAsync(Guid requisitionId, AddRequisitionLineRequest request, CancellationToken ct)
@@ -144,6 +146,25 @@ internal sealed class RequisitionService(
         if (!user.IsActive)
             throw new ForbiddenException("Your account is inactive.");
         return user;
+    }
+
+    /// <summary>The cost centre must be active and the requester's own department's; the site must be active.</summary>
+    private async Task<(CostCentreDto CostCentre, SiteDto Site)> ValidateDestinationAsync(
+        UserSummaryDto requester, Guid costCentreId, Guid siteId, CancellationToken ct)
+    {
+        var costCentre = await organisation.GetCostCentreAsync(costCentreId, ct)
+            ?? throw new NotFoundException($"Cost centre {costCentreId} was not found.");
+        if (!costCentre.IsActive)
+            throw new DomainException($"Cost centre {costCentre.Code} is inactive.");
+        if (costCentre.DepartmentId != requester.DepartmentId)
+            throw new DomainException($"Cost centre {costCentre.Code} belongs to another department.");
+
+        var site = await organisation.GetSiteAsync(siteId, ct)
+            ?? throw new NotFoundException($"Site {siteId} was not found.");
+        if (!site.IsActive)
+            throw new DomainException($"Site {site.Code} is inactive.");
+
+        return (costCentre, site);
     }
 
     private async Task<Requisition> LoadOwnAsync(Guid id, CancellationToken ct)

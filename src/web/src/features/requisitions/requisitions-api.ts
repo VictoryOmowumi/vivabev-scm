@@ -64,6 +64,8 @@ export type RequisitionDetail = {
   budgetStatus: BudgetStatus
   budgetAvailableAtSubmit: number | null
   lines: RequisitionLine[]
+  costCentreId: string
+  deliverToSiteId: string
 }
 
 // Mirrors ApprovalStatusDto / ApprovalStepDto in VivaBev.Approvals

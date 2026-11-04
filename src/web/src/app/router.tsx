@@ -6,6 +6,7 @@ import { LoginPage } from '@/features/auth/login-page'
 import { RequireAuth } from '@/features/auth/require-auth'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { RequisitionDetailPage } from '@/features/requisitions/requisition-detail-page'
+import { RequisitionEditorPage } from '@/features/requisitions/requisition-editor-page'
 import { RequisitionsPage } from '@/features/requisitions/requisitions-page'
 
 export const router = createBrowserRouter([
@@ -18,7 +19,8 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <DashboardPage /> },
           { path: 'requisitions', element: <RequisitionsPage /> },
-          { path: 'requisitions/new', element: <ComingSoonPage title="New requisition" /> },
+          { path: 'requisitions/new', element: <RequisitionEditorPage /> },
+          { path: 'requisitions/:id/edit', element: <RequisitionEditorPage /> },
           { path: 'requisitions/:id', element: <RequisitionDetailPage /> },
           { path: 'approvals', element: <ApprovalsPage /> },
           { path: 'suppliers', element: <ComingSoonPage title="Suppliers" /> },

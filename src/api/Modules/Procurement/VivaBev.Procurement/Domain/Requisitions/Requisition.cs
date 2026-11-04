@@ -49,6 +49,21 @@ public sealed class Requisition : AggregateRoot
 
     public IReadOnlyCollection<RequisitionLine> Lines => _lines.AsReadOnly();
 
+    /// <summary>Changes what a draft is for, where it goes and when it's needed.</summary>
+    public void UpdateDetails(string title, string justification, Guid costCentreId, Guid deliverToSiteId,
+        DateOnly requiredBy, DateOnly today)
+    {
+        EnsureDraft("edit");
+        if (requiredBy < today)
+            throw new DomainException("The required-by date cannot be in the past.");
+
+        Title = Guard.Required(title, nameof(title), 200);
+        Justification = Guard.Required(justification, nameof(justification), 1000);
+        CostCentreId = costCentreId;
+        DeliverToSiteId = deliverToSiteId;
+        RequiredBy = requiredBy;
+    }
+
     public RequisitionLine AddLine(LineType lineType, Guid? itemId, string? itemCode, string description,
         Guid categoryId, decimal quantity, string uomCode, decimal estimatedUnitPrice)
     {

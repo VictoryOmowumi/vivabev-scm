@@ -114,4 +114,36 @@ public class RequisitionTests
     [InlineData(2026, 10, 30, 2027)]
     public void Fiscal_years_run_July_to_June(int year, int month, int day, int expected) =>
         Assert.Equal(expected, FiscalCalendar.FiscalYearOf(new DateTime(year, month, day)));
+
+    [Fact]
+    public void A_draft_can_be_retargeted_and_renamed()
+    {
+        var requisition = NewDraft();
+        var costCentre = Guid.NewGuid();
+        var site = Guid.NewGuid();
+
+        requisition.UpdateDetails("Laptops for the audit team", "Two auditors join in December", costCentre, site,
+            Today.AddDays(45), Today);
+
+        Assert.Equal("Laptops for the audit team", requisition.Title);
+        Assert.Equal(costCentre, requisition.CostCentreId);
+        Assert.Equal(site, requisition.DeliverToSiteId);
+        Assert.Equal(Today.AddDays(45), requisition.RequiredBy);
+    }
+
+    [Fact]
+    public void Only_a_draft_can_be_edited()
+    {
+        var requisition = NewDraft();
+        requisition.AddLine(LineType.Goods, null, null, "Laptop", Category, 1, "EA", 850_000m);
+        requisition.Submit(Now);
+
+        Assert.Throws<DomainException>(() => requisition.UpdateDetails("New title", "Why", Guid.NewGuid(),
+            Guid.NewGuid(), Today.AddDays(10), Today));
+    }
+
+    [Fact]
+    public void An_edit_cannot_move_the_required_by_date_into_the_past() =>
+        Assert.Throws<DomainException>(() => NewDraft().UpdateDetails("Title", "Why", Guid.NewGuid(),
+            Guid.NewGuid(), Today.AddDays(-1), Today));
 }

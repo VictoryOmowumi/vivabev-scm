@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
-import { ArrowLeft01Icon, SparklesIcon } from '@hugeicons/core-free-icons'
+import { ArrowLeft01Icon, PencilEdit02Icon, SparklesIcon } from '@hugeicons/core-free-icons'
+import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/panel'
 import { ErrorState } from '@/components/states/error-state'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -9,6 +10,7 @@ import { useCurrentUser } from '@/features/auth/use-auth'
 import { formatDate, formatDateTime, formatNaira } from '@/lib/format'
 import { ApprovalChain } from './approval-chain'
 import { BudgetCheck } from './budget-check'
+import { CancelRequisition } from './cancel-requisition'
 import { currentStep, useRequisition, useRequisitionApproval } from './requisitions-api'
 import { BudgetBadge, StatusBadge } from './status-badges'
 
@@ -36,6 +38,7 @@ export function RequisitionDetailPage() {
   const waitingForMe = !!step && step.approverId === user?.id
   const over = r.budgetAvailableAtSubmit !== null ? r.estimatedTotal - r.budgetAvailableAtSubmit : 0
   const rejectedBy = approval.data?.steps.find((s) => s.decision === 'Rejected')
+  const mine = r.requesterId === user?.id
 
   return (
     <div className="flex flex-col gap-6">
@@ -63,6 +66,19 @@ export function RequisitionDetailPage() {
           </div>
         </div>
       </section>
+
+      {mine && r.status !== 'Cancelled' && (
+        <section aria-label="Your actions" className="flex flex-wrap items-center justify-end gap-2">
+          {r.status === 'Draft' && (
+            <Button asChild size="pill-sm">
+              <Link to={`/requisitions/${r.id}/edit`}>
+                <HugeiconsIcon icon={PencilEdit02Icon} strokeWidth={1.5} /> {r.lines.length ? 'Edit and submit' : 'Add lines'}
+              </Link>
+            </Button>
+          )}
+          <CancelRequisition id={r.id} number={r.number} status={r.status} />
+        </section>
+      )}
 
       {r.status === 'Draft' && r.rejectionReason && (
         <div role="status" className="rounded-2xl bg-over px-5 py-4 text-sm text-over-foreground">
