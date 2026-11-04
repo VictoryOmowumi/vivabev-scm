@@ -5,6 +5,7 @@ using VivaBev.Approvals.Contracts;
 using VivaBev.Infrastructure.Persistence;
 using VivaBev.Procurement.Application;
 using VivaBev.Procurement.Endpoints;
+using VivaBev.Procurement.Contracts;
 using VivaBev.Procurement.Infrastructure;
 
 namespace VivaBev.Procurement;
@@ -15,6 +16,7 @@ public static class ProcurementModule
     {
         services.AddModuleDbContext<ProcurementDbContext>(configuration, ProcurementDbContext.SchemaName);
         services.AddScoped<RequisitionService>();
+        services.AddScoped<IRequisitionQueries, RequisitionQueries>();
         services.AddScoped<IApprovalOutcomeHandler, RequisitionApprovalHandler>();
         return services;
     }

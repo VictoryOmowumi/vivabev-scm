@@ -12,6 +12,7 @@ using VivaBev.Procurement.Domain.Requisitions;
 using VivaBev.Procurement.Infrastructure;
 using VivaBev.SharedKernel.Abstractions;
 using VivaBev.SharedKernel.Security;
+using VivaBev.SharedKernel.Time;
 
 namespace VivaBev.Procurement.Endpoints;
 
@@ -117,7 +118,7 @@ internal static class RequisitionEndpoints
 
         // What the requisition form needs: your department's cost centres, each with its budget position now
         group.MapGet("/form-options", async (ICurrentUser currentUser, IUserDirectory users,
-            IOrganisationQueries organisation, IBudgets budgets, ProcurementDbContext db, TimeProvider clock,
+            IOrganisationQueries organisation, IBudgets budgets, IRequisitionQueries requisitions, TimeProvider clock,
             CancellationToken ct) =>
         {
             var me = await users.GetUserAsync(currentUser.UserId!.Value, ct);
@@ -127,25 +128,17 @@ internal static class RequisitionEndpoints
             var costCentres = (await organisation.GetCostCentresAsync(ct))
                 .Where(c => c.IsActive && c.DepartmentId == me.DepartmentId)
                 .ToList();
-            var ids = costCentres.Select(c => c.Id).ToList();
-
-            // Submitted but not yet approved: checked against the budget, not yet committed to it
-            var pending = await db.Requisitions.AsNoTracking()
-                .Where(r => r.Status == RequisitionStatus.PendingApproval && ids.Contains(r.CostCentreId))
-                .Select(r => new { r.CostCentreId, r.BudgetFiscalYear, r.EstimatedTotal })
-                .ToListAsync(ct);
 
             var now = clock.GetUtcNow().UtcDateTime;
+            // Submitted but not yet approved: checked against the budget, not yet committed to it
+            var inApproval = await requisitions.GetInApprovalTotalsAsync(FiscalCalendar.FiscalYearOf(now), ct);
+
             var options = new List<CostCentreOptionDto>();
             foreach (var c in costCentres)
             {
                 var budget = await budgets.CheckAsync(c.Id, now, 0m, ct);
-                var inApproval = pending
-                    .Where(p => p.CostCentreId == c.Id && p.BudgetFiscalYear == budget.FiscalYear)
-                    .Sum(p => p.EstimatedTotal);
-
                 options.Add(new CostCentreOptionDto(c.Id, c.Code, c.Name, budget.FiscalYear, budget.HasBudget,
-                    budget.Budget, budget.Available, inApproval));
+                    budget.Budget, budget.Available, inApproval.GetValueOrDefault(c.Id)));
             }
 
             return Results.Ok(options);

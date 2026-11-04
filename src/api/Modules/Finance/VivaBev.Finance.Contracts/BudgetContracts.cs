@@ -25,7 +25,9 @@ public sealed record SetBudgetRequest(Guid CostCentreId, int FiscalYear, decimal
 
 public sealed record BudgetSummaryDto(
     Guid Id, Guid CostCentreId, string CostCentreCode, string CostCentreName, int FiscalYear, string CurrencyCode,
-    decimal Amount, decimal Committed, decimal Consumed, decimal Available);
+    decimal Amount, decimal Committed, decimal Consumed, decimal Available,
+    decimal InApproval,       // submitted requisitions not yet approved (from Procurement)
+    string DepartmentCode);
 
 public sealed record BudgetCommitmentDto(
     string DocumentType, Guid DocumentId, string DocumentNumber, decimal Amount, string Status,

@@ -4,6 +4,8 @@ import { ComingSoonPage } from '@/components/layout/coming-soon-page'
 import { ApprovalsPage } from '@/features/approvals/approvals-page'
 import { LoginPage } from '@/features/auth/login-page'
 import { RequireAuth } from '@/features/auth/require-auth'
+import { BudgetDetailPage } from '@/features/budgets/budget-detail-page'
+import { BudgetsPage } from '@/features/budgets/budgets-page'
 import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { RequisitionDetailPage } from '@/features/requisitions/requisition-detail-page'
 import { RequisitionEditorPage } from '@/features/requisitions/requisition-editor-page'
@@ -25,7 +27,8 @@ export const router = createBrowserRouter([
           { path: 'approvals', element: <ApprovalsPage /> },
           { path: 'suppliers', element: <ComingSoonPage title="Suppliers" /> },
           { path: 'catalogue', element: <ComingSoonPage title="Catalogue" /> },
-          { path: 'budgets', element: <ComingSoonPage title="Budgets" /> },
+          { path: 'budgets', element: <BudgetsPage /> },
+          { path: 'budgets/:id', element: <BudgetDetailPage /> },
           { path: 'copilot', element: <ComingSoonPage title="Copilot" /> },
           { path: '*', element: <ComingSoonPage title="Page not found" /> },
         ],
