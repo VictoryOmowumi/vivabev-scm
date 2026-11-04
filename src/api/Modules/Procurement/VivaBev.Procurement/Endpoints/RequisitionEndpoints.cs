@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using VivaBev.Approvals.Contracts;
+using VivaBev.Finance.Contracts;
 using VivaBev.Identity.Contracts;
 using VivaBev.Procurement.Application;
 using VivaBev.Procurement.Contracts;
@@ -95,7 +96,8 @@ internal static class RequisitionEndpoints
                     .Select(l => new RequisitionLineDto(
                         l.LineNo, l.LineType.ToString(), l.ItemId, l.ItemCode, l.Description, l.CategoryId,
                         l.Quantity, l.UomCode, l.EstimatedUnitPrice, l.LineTotal))
-                    .ToList()));
+                    .ToList(),
+                r.CostCentreId, r.DeliverToSiteId));
         });
 
         // The approval chain, for anyone who may see the requisition (204 if it was never submitted)
@@ -113,12 +115,55 @@ internal static class RequisitionEndpoints
             return approval is null ? Results.NoContent() : Results.Ok(approval);
         });
 
+        // What the requisition form needs: your department's cost centres, each with its budget position now
+        group.MapGet("/form-options", async (ICurrentUser currentUser, IUserDirectory users,
+            IOrganisationQueries organisation, IBudgets budgets, ProcurementDbContext db, TimeProvider clock,
+            CancellationToken ct) =>
+        {
+            var me = await users.GetUserAsync(currentUser.UserId!.Value, ct);
+            if (me is null)
+                return Results.NotFound();
+
+            var costCentres = (await organisation.GetCostCentresAsync(ct))
+                .Where(c => c.IsActive && c.DepartmentId == me.DepartmentId)
+                .ToList();
+            var ids = costCentres.Select(c => c.Id).ToList();
+
+            // Submitted but not yet approved: checked against the budget, not yet committed to it
+            var pending = await db.Requisitions.AsNoTracking()
+                .Where(r => r.Status == RequisitionStatus.PendingApproval && ids.Contains(r.CostCentreId))
+                .Select(r => new { r.CostCentreId, r.BudgetFiscalYear, r.EstimatedTotal })
+                .ToListAsync(ct);
+
+            var now = clock.GetUtcNow().UtcDateTime;
+            var options = new List<CostCentreOptionDto>();
+            foreach (var c in costCentres)
+            {
+                var budget = await budgets.CheckAsync(c.Id, now, 0m, ct);
+                var inApproval = pending
+                    .Where(p => p.CostCentreId == c.Id && p.BudgetFiscalYear == budget.FiscalYear)
+                    .Sum(p => p.EstimatedTotal);
+
+                options.Add(new CostCentreOptionDto(c.Id, c.Code, c.Name, budget.FiscalYear, budget.HasBudget,
+                    budget.Budget, budget.Available, inApproval));
+            }
+
+            return Results.Ok(options);
+        }).RequireAuthorization(Permissions.Requisitions.Create);
+
         // ---------- commands ----------
 
         group.MapPost("/", async (CreateRequisitionRequest request, RequisitionService service, CancellationToken ct) =>
         {
             var (id, number) = await service.CreateAsync(request, ct);
             return Results.Created($"/api/requisitions/{id}", new { id, number });
+        }).RequireAuthorization(Permissions.Requisitions.Create);
+
+        group.MapPut("/{id:guid}", async (Guid id, UpdateRequisitionRequest request, RequisitionService service,
+            CancellationToken ct) =>
+        {
+            await service.UpdateAsync(id, request, ct);
+            return Results.NoContent();
         }).RequireAuthorization(Permissions.Requisitions.Create);
 
         group.MapPost("/{id:guid}/lines", async (Guid id, AddRequisitionLineRequest request,

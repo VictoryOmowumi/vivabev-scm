@@ -56,3 +56,12 @@ async function readProblem(response: Response): Promise<ProblemDetails> {
   }
   return { status: response.status, title: response.statusText || 'Request failed' }
 }
+
+/** The most useful sentence in an error, for showing to a person. */
+export function problemMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    const firstFieldError = error.problem.errors && Object.values(error.problem.errors)[0]?.[0]
+    return error.problem.detail ?? firstFieldError ?? error.problem.title ?? error.message
+  }
+  return error instanceof Error ? error.message : 'Something went wrong.'
+}

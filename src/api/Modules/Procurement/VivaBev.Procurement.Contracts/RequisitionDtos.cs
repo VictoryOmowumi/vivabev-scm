@@ -15,6 +15,9 @@ public sealed record AddRequisitionLineRequest(
     string? LineType = null,
     string? UomCode = null);
 
+public sealed record UpdateRequisitionRequest(
+    string Title, string Justification, Guid CostCentreId, Guid DeliverToSiteId, DateOnly RequiredBy);
+
 public sealed record CancelRequisitionRequest(string Reason);
 
 // ---- responses ----
@@ -57,4 +60,17 @@ public sealed record RequisitionDetailDto(
     DateTime? ApprovedAt,
     string BudgetStatus,
     decimal? BudgetAvailableAtSubmit,
-    IReadOnlyList<RequisitionLineDto> Lines);
+    IReadOnlyList<RequisitionLineDto> Lines,
+    Guid CostCentreId,
+    Guid DeliverToSiteId);
+
+/// <summary>A cost centre the requester may charge, with where its budget stands right now.</summary>
+public sealed record CostCentreOptionDto(
+    Guid Id,
+    string Code,
+    string Name,
+    int FiscalYear,
+    bool HasBudget,
+    decimal Budget,
+    decimal Available,    // budget - committed - consumed
+    decimal InApproval);  // submitted requisitions not yet approved (not committed yet)
