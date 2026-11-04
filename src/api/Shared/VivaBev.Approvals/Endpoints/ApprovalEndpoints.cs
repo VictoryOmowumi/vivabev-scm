@@ -40,6 +40,35 @@ internal static class ApprovalEndpoints
                 r.CurrentStep!.Name, r.CurrentStep.Sequence, r.Steps.Count, r.OverBudget));
         });
 
+        // What you approved or rejected recently, newest first (?days=30 by default)
+        group.MapGet("/decided", async (int? days, ICurrentUser currentUser, ApprovalsDbContext db,
+            IUserDirectory users, TimeProvider clock, CancellationToken ct) =>
+        {
+            var me = currentUser.UserId;
+            var since = clock.GetUtcNow().UtcDateTime.AddDays(-Math.Clamp(days ?? 30, 1, 365));
+
+            var requests = await db.Requests.AsNoTracking()
+                .Include(r => r.Steps)
+                .Where(r => r.Steps.Any(s =>
+                    s.ApproverId == me && s.Decision != StepDecision.Pending && s.DecidedAt >= since))
+                .ToListAsync(ct);
+
+            var names = await NamesAsync(users, requests.Select(r => r.RequestedBy), ct);
+
+            return requests
+                .Select(r => (Request: r, Mine: r.Steps
+                    .Where(s => s.ApproverId == me && s.Decision != StepDecision.Pending)
+                    .OrderByDescending(s => s.DecidedAt)
+                    .First()))
+                .OrderByDescending(x => x.Mine.DecidedAt)
+                .Select(x => new DecidedTaskDto(
+                    x.Request.Id, x.Request.DocumentType, x.Request.DocumentId, x.Request.DocumentNumber,
+                    x.Request.Title, x.Request.Amount, names[x.Request.RequestedBy],
+                    x.Mine.Decision.ToString(), x.Mine.DecidedAt!.Value, x.Mine.Comment,
+                    x.Request.Status.ToString(), x.Request.OverBudget))
+                .ToList();
+        });
+
         group.MapGet("/documents/{documentType}/{documentId:guid}", async (string documentType, Guid documentId,
             ICurrentUser currentUser, ApprovalsDbContext db, IUserDirectory users, CancellationToken ct) =>
         {

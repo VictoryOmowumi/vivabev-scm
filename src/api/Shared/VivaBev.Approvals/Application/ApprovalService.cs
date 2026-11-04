@@ -72,6 +72,30 @@ internal sealed class ApprovalService(
             r.DocumentId == documentId &&
             r.Steps.Any(s => s.ApproverId == userId), ct);
 
+    public async Task<ApprovalStatusDto?> GetLatestAsync(string documentType, Guid documentId,
+        CancellationToken ct = default)
+    {
+        var request = await db.Requests.AsNoTracking()
+            .Include(r => r.Steps)
+            .Where(r => r.DocumentType == documentType && r.DocumentId == documentId)
+            .OrderByDescending(r => r.RequestedAt)
+            .FirstOrDefaultAsync(ct);
+
+        if (request is null)
+            return null;
+
+        var approvers = await users.GetUsersAsync(request.Steps.Select(s => s.ApproverId).ToList(), ct);
+
+        return new ApprovalStatusDto(
+            request.Id, request.DocumentNumber, request.Status.ToString(), request.Amount,
+            request.Steps.OrderBy(s => s.Sequence)
+                .Select(s => new ApprovalStepDto(
+                    s.Sequence, s.Name, s.ApproverId,
+                    approvers.GetValueOrDefault(s.ApproverId)?.DisplayName ?? "(unknown user)",
+                    s.Decision.ToString(), s.DecidedAt, s.Comment))
+                .ToList());
+    }
+
     // ---------- called by the approvals endpoints ----------
 
     public Task ApproveAsync(Guid requestId, string? comment, CancellationToken ct) =>

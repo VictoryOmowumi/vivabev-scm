@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { authApi, type LoginRequest } from './auth-api'
+import { clearSessionExpired } from './session'
 
 export const currentUserKey = ['auth', 'me'] as const
 
@@ -16,7 +17,10 @@ export function useLogin() {
   return useMutation({
     mutationFn: (request: LoginRequest) => authApi.login(request),
     // Returning the promise makes mutateAsync wait until "me" has reloaded
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: currentUserKey }),
+    onSuccess: () => {
+      clearSessionExpired()
+      return queryClient.invalidateQueries({ queryKey: currentUserKey })
+    },
   })
 }
 

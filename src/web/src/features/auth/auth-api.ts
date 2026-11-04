@@ -11,7 +11,7 @@ export type CurrentUser = {
   permissions: string[]
 }
 
-export type LoginRequest = { email: string; password: string }
+export type LoginRequest = { email: string; password: string; rememberMe: boolean }
 
 export const authApi = {
   /** The signed-in user, or null when there is no valid cookie. */

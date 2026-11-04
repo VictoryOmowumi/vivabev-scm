@@ -20,8 +20,19 @@ public sealed record CancelRequisitionRequest(string Reason);
 // ---- responses ----
 
 public sealed record RequisitionSummaryDto(
-    Guid Id, string Number, string Title, string Status, Guid RequesterId,
-    DateOnly RequiredBy, decimal EstimatedTotal, string CurrencyCode, DateTime? SubmittedAt);
+    Guid Id,
+    string Number,
+    string Title,
+    string Status,
+    bool Returned,            // a draft an approver sent back
+    Guid RequesterId,
+    string RequesterName,
+    string CostCentreCode,
+    string BudgetStatus,
+    DateOnly RequiredBy,
+    decimal EstimatedTotal,
+    string CurrencyCode,
+    DateTime? SubmittedAt);
 
 public sealed record RequisitionLineDto(
     int LineNo, string LineType, Guid? ItemId, string? ItemCode, string Description, Guid CategoryId,

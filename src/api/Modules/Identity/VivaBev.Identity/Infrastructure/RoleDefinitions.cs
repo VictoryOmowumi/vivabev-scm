@@ -21,7 +21,7 @@ internal static class RoleDefinitions
         (Requester, "Raises requests for goods and services",
             [.. Basic, Permissions.Requisitions.Create]),
         (DepartmentManager, "Reviews and approves departmental requests",
-            [.. Basic, Permissions.Requisitions.Create]),
+            [.. Basic, Permissions.Requisitions.Create, Permissions.Requisitions.ViewDepartment]),
         (ProcurementOfficer, "Sources, maintains suppliers and the catalogue",
             [.. Basic, Permissions.Suppliers.Manage, Permissions.Catalogue.Manage, Permissions.Requisitions.ViewAll]),
         (ProcurementManager, "Procurement officer who also approves suppliers",

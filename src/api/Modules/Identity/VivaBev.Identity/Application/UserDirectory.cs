@@ -13,6 +13,20 @@ internal sealed class UserDirectory(IdentityModuleDbContext db) : IUserDirectory
                 u.Id, u.DisplayName, u.Email!, u.DepartmentId, u.SiteId, u.ManagerId, u.IsActive))
             .SingleOrDefaultAsync(ct);
 
+    public async Task<IReadOnlyDictionary<Guid, UserSummaryDto>> GetUsersAsync(
+        IReadOnlyCollection<Guid> userIds, CancellationToken ct = default)
+    {
+        if (userIds.Count == 0)
+            return new Dictionary<Guid, UserSummaryDto>();
+
+        var ids = userIds.Distinct().ToList();
+        return await db.Users.AsNoTracking()
+            .Where(u => ids.Contains(u.Id))
+            .Select(u => new UserSummaryDto(
+                u.Id, u.DisplayName, u.Email!, u.DepartmentId, u.SiteId, u.ManagerId, u.IsActive))
+            .ToDictionaryAsync(u => u.Id, ct);
+    }
+
     public async Task<IReadOnlyList<UserSummaryDto>> GetUsersInRoleAsync(
         string roleName, Guid? departmentId = null, CancellationToken ct = default)
     {

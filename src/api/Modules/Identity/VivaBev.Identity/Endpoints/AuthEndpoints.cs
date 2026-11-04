@@ -24,12 +24,14 @@ internal static class AuthEndpoints
             if (user is null || !user.IsActive)
                 return Results.Problem(statusCode: StatusCodes.Status401Unauthorized, title: "Invalid email or password");
 
-            var result = await signIn.PasswordSignInAsync(user, request.Password, isPersistent: false,
+            // isPersistent: true keeps the cookie after the browser closes ("Keep me signed in")
+            var result = await signIn.PasswordSignInAsync(user, request.Password, isPersistent: request.RememberMe,
                 lockoutOnFailure: true);
 
             if (result.IsLockedOut)
                 return Results.Problem(statusCode: StatusCodes.Status401Unauthorized,
-                    title: "Too many failed attempts. Try again in 5 minutes.");
+                    title: "Too many failed attempts. Try again in 5 minutes.",
+                    extensions: new Dictionary<string, object?> { ["code"] = "locked_out" });
             if (!result.Succeeded)
                 return Results.Problem(statusCode: StatusCodes.Status401Unauthorized, title: "Invalid email or password");
 
