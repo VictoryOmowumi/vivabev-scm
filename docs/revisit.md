@@ -9,3 +9,12 @@ If two requisitions on the same cost centre are submitted at the same moment, bo
 **Why it's fine today:** budgets are soft. Nothing is blocked, the commitments still land on approval, and Finance sees the overspend as a negative Available.
 
 **When to revisit:** if we ever add hard budgets that block a submit. The check and the commit would then need to run under a lock on the budget row (for example `UPDLOCK` / `SERIALIZABLE` on the budget, or an optimistic retry on its RowVersion).
+
+## Requisition list loads up to 200 rows (Procurement)
+
+The list returns the newest 200 requisitions for the chosen scope; the browser filters and searches them.
+
+**Why it's fine today:** one department raises far fewer than 200 a year.
+
+**When to revisit:** when the "All" tab gets slow or someone can't find an older requisition. Move status,
+search and paging to the API (`?status=&q=&page=`) and keep the URL parameters the page already uses.

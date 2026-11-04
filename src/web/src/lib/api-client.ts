@@ -7,6 +7,8 @@ export type ProblemDetails = {
   status?: number
   detail?: string
   errors?: Record<string, string[]> // validation errors, keyed by field
+  traceId?: string // ASP.NET Core adds this; quote it when reporting a problem
+  code?: string // our own machine-readable reason, e.g. "locked_out"
 }
 
 export class ApiError extends Error {

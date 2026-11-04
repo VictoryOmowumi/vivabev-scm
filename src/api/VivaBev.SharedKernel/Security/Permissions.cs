@@ -26,8 +26,9 @@ public static class Permissions
 
     public static class Requisitions
     {
-        public const string Create = "requisitions.create";     // raise and edit your own
-        public const string ViewAll = "requisitions.view-all";  // see everyone's
+        public const string Create = "requisitions.create";                 // raise and edit your own
+        public const string ViewDepartment = "requisitions.view-department"; // see your department's
+        public const string ViewAll = "requisitions.view-all";              // see everyone's
     }
 
     public static class Finance
@@ -41,7 +42,7 @@ public static class Permissions
         Catalogue.View, Catalogue.Manage,
         Suppliers.View, Suppliers.Manage, Suppliers.Approve,
         Organisation.View, Organisation.Manage,
-        Requisitions.Create, Requisitions.ViewAll,
+        Requisitions.Create, Requisitions.ViewDepartment, Requisitions.ViewAll,
         Finance.ViewBudgets, Finance.ManageBudgets,
     ];
 }

@@ -23,23 +23,48 @@ internal static class RequisitionEndpoints
 
         // ---------- queries ----------
 
-        group.MapGet("/", async (bool? mine, ClaimsPrincipal principal, ICurrentUser currentUser,
-            ProcurementDbContext db, CancellationToken ct) =>
+        // ?scope=mine|department|all. Left out, you get the widest list you're allowed to see.
+        group.MapGet("/", async (string? scope, ClaimsPrincipal principal, ICurrentUser currentUser,
+            ProcurementDbContext db, IUserDirectory users, IOrganisationQueries organisation, CancellationToken ct) =>
         {
-            var canSeeAll = principal.HasClaim(Permissions.ClaimType, Permissions.Requisitions.ViewAll);
+            var permissions = principal.GetPermissions();
+            var requested = RequisitionVisibility.Widest(permissions);
+
+            if (scope is not null &&
+                (!Enum.TryParse(scope, ignoreCase: true, out requested) || !Enum.IsDefined(requested)))
+                return Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+                    title: $"Unknown scope '{scope}'. Use mine, department or all.");
+
+            if (!RequisitionVisibility.Allows(permissions, requested))
+                return Results.Problem(statusCode: StatusCodes.Status403Forbidden,
+                    title: $"You can't list {scope} requisitions.");
+
+            var me = currentUser.UserId!.Value; // the group requires a signed-in user
             var query = db.Requisitions.AsNoTracking();
 
-            if (!canSeeAll || mine == true)
+            if (requested == RequisitionScope.Mine)
             {
-                var userId = currentUser.UserId;
-                query = query.Where(r => r.RequesterId == userId);
+                query = query.Where(r => r.RequesterId == me);
+            }
+            else if (requested == RequisitionScope.Department)
+            {
+                var myDepartment = await DepartmentOfAsync(users, me, ct);
+                query = query.Where(r => r.DepartmentId == myDepartment);
             }
 
-            var rows = await query.OrderByDescending(r => r.Number).Take(100).ToListAsync(ct);
+            var rows = await query.OrderByDescending(r => r.Number).Take(200).ToListAsync(ct);
 
-            return rows.Select(r => new RequisitionSummaryDto(
-                r.Id, r.Number, r.Title, r.Status.ToString(), r.RequesterId,
-                r.RequiredBy, r.EstimatedTotal, r.CurrencyCode, r.SubmittedAt));
+            // Two lookups for the whole page, not two per row
+            var requesters = await users.GetUsersAsync(rows.Select(r => r.RequesterId).ToList(), ct);
+            var costCentres = (await organisation.GetCostCentresAsync(ct)).ToDictionary(c => c.Id, c => c.Code);
+
+            return Results.Ok(rows.Select(r => new RequisitionSummaryDto(
+                    r.Id, r.Number, r.Title, r.Status.ToString(),
+                    r.Status == RequisitionStatus.Draft && r.RejectionReason is not null,
+                    r.RequesterId, requesters.GetValueOrDefault(r.RequesterId)?.DisplayName ?? "(unknown user)",
+                    costCentres.GetValueOrDefault(r.CostCentreId) ?? "?", r.BudgetStatus.ToString(),
+                    r.RequiredBy, r.EstimatedTotal, r.CurrencyCode, r.SubmittedAt))
+                .ToList());
         });
 
         group.MapGet("/{id:guid}", async (Guid id, ClaimsPrincipal principal, ICurrentUser currentUser,
@@ -52,13 +77,7 @@ internal static class RequisitionEndpoints
 
             if (r is null)
                 return Results.NotFound();
-
-            var userId = currentUser.UserId;
-            var allowed = r.RequesterId == userId
-                || principal.HasClaim(Permissions.ClaimType, Permissions.Requisitions.ViewAll)
-                || (userId is { } signedIn && await approvals.IsApproverAsync(Requisition.ApprovalDocumentType, r.Id, signedIn, ct));
-
-            if (!allowed)
+            if (!await CanViewAsync(r, principal, currentUser, users, approvals, ct))
                 return Results.Forbid();
 
             var requester = await users.GetUserAsync(r.RequesterId, ct);
@@ -77,6 +96,21 @@ internal static class RequisitionEndpoints
                         l.LineNo, l.LineType.ToString(), l.ItemId, l.ItemCode, l.Description, l.CategoryId,
                         l.Quantity, l.UomCode, l.EstimatedUnitPrice, l.LineTotal))
                     .ToList()));
+        });
+
+        // The approval chain, for anyone who may see the requisition (204 if it was never submitted)
+        group.MapGet("/{id:guid}/approval", async (Guid id, ClaimsPrincipal principal, ICurrentUser currentUser,
+            ProcurementDbContext db, IUserDirectory users, IApprovals approvals, CancellationToken ct) =>
+        {
+            var r = await db.Requisitions.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct);
+
+            if (r is null)
+                return Results.NotFound();
+            if (!await CanViewAsync(r, principal, currentUser, users, approvals, ct))
+                return Results.Forbid();
+
+            var approval = await approvals.GetLatestAsync(Requisition.ApprovalDocumentType, r.Id, ct);
+            return approval is null ? Results.NoContent() : Results.Ok(approval);
         });
 
         // ---------- commands ----------
@@ -114,4 +148,28 @@ internal static class RequisitionEndpoints
             return Results.NoContent();
         }).RequireAuthorization(Permissions.Requisitions.Create);
     }
+
+    // ---------- helpers ----------
+
+    /// <summary>Requester, department managers (own department), view-all roles, and anyone on the approval chain.</summary>
+    private static async Task<bool> CanViewAsync(Requisition r, ClaimsPrincipal principal, ICurrentUser currentUser,
+        IUserDirectory users, IApprovals approvals, CancellationToken ct)
+    {
+        if (currentUser.UserId is not { } me)
+            return false;
+        if (r.RequesterId == me)
+            return true;
+
+        var widest = RequisitionVisibility.Widest(principal.GetPermissions());
+        if (widest == RequisitionScope.All)
+            return true;
+        if (widest == RequisitionScope.Department && r.DepartmentId == await DepartmentOfAsync(users, me, ct))
+            return true;
+
+        // Approvers see what they're asked to approve, whatever their department
+        return await approvals.IsApproverAsync(Requisition.ApprovalDocumentType, r.Id, me, ct);
+    }
+
+    private static async Task<Guid?> DepartmentOfAsync(IUserDirectory users, Guid userId, CancellationToken ct) =>
+        (await users.GetUserAsync(userId, ct))?.DepartmentId;
 }
