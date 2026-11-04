@@ -22,4 +22,12 @@ Prerequisites: Docker Desktop, .NET 10 SDK.
     dotnet tool restore
     dotnet run --project src/api/VivaBev.Api.Host
 
+In a second terminal (needs Node 26 LTS):
+
+    cd src/web
+    npm install
+    npm run dev
+
+Then open http://localhost:5174. Start the API with `--launch-profile https`.
+
 See `docs/` for the product definition, architecture and data model.
