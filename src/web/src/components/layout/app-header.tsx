@@ -2,17 +2,19 @@ import { Link, NavLink } from 'react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { DropletIcon, SparklesIcon } from '@hugeicons/core-free-icons'
 import type { CurrentUser } from '@/features/auth/auth-api'
+import { canSeeBudgets } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from './theme-toggle'
 import { UserMenu } from './user-menu'
 
-const navItems = [
+// Links you can't use are hidden rather than shown and refused
+const navItems: { to: string; label: string; visible?: (user: CurrentUser) => boolean }[] = [
   { to: '/', label: 'Dashboard' },
   { to: '/requisitions', label: 'Requisitions' },
   { to: '/approvals', label: 'Approvals' },
   { to: '/suppliers', label: 'Suppliers' },
   { to: '/catalogue', label: 'Catalogue' },
-  { to: '/budgets', label: 'Budgets' },
+  { to: '/budgets', label: 'Budgets', visible: canSeeBudgets },
 ]
 
 export function AppHeader({ user }: { user: CurrentUser }) {
@@ -27,7 +29,7 @@ export function AppHeader({ user }: { user: CurrentUser }) {
       </Link>
 
       <nav aria-label="Main" className="flex flex-wrap gap-0.5 rounded-full border border-white/90 bg-card p-1.5 backdrop-blur-sm dark:border-white/10">
-        {navItems.map((item) => (
+        {navItems.filter((item) => item.visible?.(user) ?? true).map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

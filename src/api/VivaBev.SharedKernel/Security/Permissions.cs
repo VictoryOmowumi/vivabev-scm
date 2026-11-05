@@ -33,7 +33,8 @@ public static class Permissions
 
     public static class Finance
     {
-        public const string ViewBudgets = "finance.budgets.view";
+        public const string ViewBudgets = "finance.budgets.view";                      // every cost centre
+        public const string ViewDepartmentBudgets = "finance.budgets.view-department"; // your department's, read-only
         public const string ManageBudgets = "finance.budgets.manage";
     }
 
@@ -43,6 +44,6 @@ public static class Permissions
         Suppliers.View, Suppliers.Manage, Suppliers.Approve,
         Organisation.View, Organisation.Manage,
         Requisitions.Create, Requisitions.ViewDepartment, Requisitions.ViewAll,
-        Finance.ViewBudgets, Finance.ManageBudgets,
+        Finance.ViewBudgets, Finance.ViewDepartmentBudgets, Finance.ManageBudgets,
     ];
 }
