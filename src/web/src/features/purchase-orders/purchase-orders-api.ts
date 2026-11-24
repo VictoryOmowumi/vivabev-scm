@@ -3,11 +3,13 @@ import { api } from '@/lib/api-client'
 import { requisitionKeys } from '@/features/requisitions/requisitions-api'
 import { sourcingKeys } from '@/features/sourcing/sourcing-api'
 
-export type PurchaseOrderStatus = 'Draft' | 'Issued' | 'Cancelled'
+export type PurchaseOrderStatus = 'Draft' | 'Issued' | 'PartiallyReceived' | 'Received' | 'Cancelled'
 
 export const orderStatusLabels: Record<PurchaseOrderStatus, string> = {
   Draft: 'Draft',
   Issued: 'Issued',
+  PartiallyReceived: 'Part received',
+  Received: 'Received',
   Cancelled: 'Cancelled',
 }
 
@@ -39,6 +41,7 @@ export type PurchaseOrderLine = {
   uomCode: string
   unitPrice: number
   lineTotal: number
+  quantityReceived: number
 }
 
 // Mirrors PurchaseOrderDetailDto

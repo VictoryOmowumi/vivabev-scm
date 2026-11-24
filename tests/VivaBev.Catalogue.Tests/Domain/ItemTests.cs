@@ -50,4 +50,20 @@ public class ItemTests
     public void A_new_item_is_active() =>
         Assert.True(new Item("IT-LAPTOP", "Laptop", ItemType.Asset, CategoryId, "EA",
             isStocked: true, isLotControlled: false).IsActive);
+
+    [Fact]
+    public void Details_can_change_and_an_item_can_come_back()
+    {
+        var item = new Item("IT-LAPTOP", "Laptop", ItemType.Asset, CategoryId, "EA", isStocked: true, isLotControlled: false);
+        var other = Guid.NewGuid();
+
+        item.UpdateDetails("Business laptop 14in", "  16GB RAM  ", other);
+        item.Deactivate();
+        item.Activate();
+
+        Assert.Equal("Business laptop 14in", item.Name);
+        Assert.Equal("16GB RAM", item.Description);
+        Assert.Equal(other, item.CategoryId);
+        Assert.True(item.IsActive);
+    }
 }

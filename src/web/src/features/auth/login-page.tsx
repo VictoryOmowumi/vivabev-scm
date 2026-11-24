@@ -22,6 +22,8 @@ const slides = [
 // Shown only by `npm run dev`; a production build leaves them out
 const demoAccounts = [
   { email: 'buyer@vivabev.example', name: 'Yusuf', role: 'Procurement officer' },
+  { email: 'procurement.manager@vivabev.example', name: 'Grace', role: 'Procurement manager' },
+  { email: 'warehouse@vivabev.example', name: 'Samuel', role: 'Warehouse' },
   { email: 'manager@vivabev.example', name: 'Funmi', role: 'Head of IT' },
   { email: 'requester@vivabev.example', name: 'Chinedu', role: 'Requester' },
   { email: 'finance@vivabev.example', name: 'Amaka', role: 'Finance' },

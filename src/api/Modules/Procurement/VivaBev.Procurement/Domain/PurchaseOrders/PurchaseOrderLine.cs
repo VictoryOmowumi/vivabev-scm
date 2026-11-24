@@ -43,6 +43,17 @@ public sealed class PurchaseOrderLine : AuditableEntity
     public decimal Quantity { get; private set; }
     public string UomCode { get; private set; } = null!;
     public decimal UnitPrice { get; private set; }
+    public decimal QuantityReceived { get; private set; }
 
     public decimal LineTotal => decimal.Round(Quantity * UnitPrice, 2);
+    public decimal Outstanding => Quantity - QuantityReceived;
+
+    internal void Receive(decimal quantity)
+    {
+        if (quantity <= 0)
+            throw new DomainException("Received quantities must be more than zero.");
+        if (quantity > Outstanding)
+            throw new DomainException($"Line {LineNo} ({Description}) has only {Outstanding:0.####} {UomCode} left to receive.");
+        QuantityReceived += quantity;
+    }
 }

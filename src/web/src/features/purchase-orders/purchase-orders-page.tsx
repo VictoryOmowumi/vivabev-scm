@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 import { OrderStatusBadge } from './order-status-badge'
 import { orderStatusLabels, usePurchaseOrders, type PurchaseOrderStatus } from './purchase-orders-api'
 
-const tabs: (PurchaseOrderStatus | 'all')[] = ['all', 'Draft', 'Issued', 'Cancelled']
+const tabs: (PurchaseOrderStatus | 'all')[] = ['all', 'Draft', 'Issued', 'PartiallyReceived', 'Received', 'Cancelled']
 const columns = ['Order', 'Supplier', 'From', 'Expected delivery', 'Total', 'Status']
 
 export function PurchaseOrdersPage() {

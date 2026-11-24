@@ -64,7 +64,7 @@ internal static class PurchaseOrderEndpoints
                 p.Lines.OrderBy(l => l.LineNo)
                     .Select(l => new PurchaseOrderLineDto(l.Id, l.LineNo, l.RequisitionId, l.RequisitionNumber,
                         costCentres.GetValueOrDefault(l.CostCentreId) ?? "?", l.ItemCode, l.Description, l.Quantity,
-                        l.UomCode, l.UnitPrice, l.LineTotal))
+                        l.UomCode, l.UnitPrice, l.LineTotal, l.QuantityReceived))
                     .ToList()));
         });
 

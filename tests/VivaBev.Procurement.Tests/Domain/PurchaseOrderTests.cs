@@ -82,4 +82,21 @@ public class PurchaseOrderTests
         Assert.Equal(RequisitionStatus.Ordered, requisition.Status);
         Assert.Throws<DomainException>(() => requisition.Cancel("No longer needed"));
     }
+
+    [Fact]
+    public void Receiving_moves_an_issued_order_to_partly_then_fully_received()
+    {
+        var po = Draft(Line(3, 850_000m), Line(1, 120_000m));
+        var (first, second) = (po.Lines.First().Id, po.Lines.Last().Id);
+        Assert.Throws<DomainException>(() => po.RecordReceipt([(first, 1m)])); // not issued yet
+
+        po.Issue(Now);
+        po.RecordReceipt([(first, 2m)]);
+        Assert.Equal(PurchaseOrderStatus.PartiallyReceived, po.Status);
+
+        Assert.Throws<DomainException>(() => po.RecordReceipt([(first, 2m)])); // only 1 left
+        po.RecordReceipt([(first, 1m), (second, 1m)]);
+        Assert.Equal(PurchaseOrderStatus.Received, po.Status);
+        Assert.All(po.Lines, l => Assert.Equal(0m, l.Outstanding));
+    }
 }
