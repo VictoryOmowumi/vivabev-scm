@@ -133,6 +133,7 @@ export function TeamDashboard({ user }: { user: CurrentUser }) {
               { label: 'Pending', count: count(rows, 'PendingApproval'), to: `/requisitions?scope=${scope}&status=PendingApproval`, tone: 'green' },
               { label: 'Approved', count: count(rows, 'Approved'), to: `/requisitions?scope=${scope}&status=Approved`, tone: 'dark' },
               { label: 'Sourcing', count: count(rows, 'InSourcing'), to: `/requisitions?scope=${scope}&status=InSourcing`, tone: 'dark' },
+              { label: 'Ordered', count: count(rows, 'Ordered'), to: `/requisitions?scope=${scope}&status=Ordered`, tone: 'dark' },
               { label: 'Cancelled', count: count(rows, 'Cancelled'), to: `/requisitions?scope=${scope}&status=Cancelled`, tone: 'grey' },
             ]} />
           )}

@@ -8,6 +8,7 @@ using VivaBev.Finance.Contracts;
 using VivaBev.Identity.Contracts;
 using VivaBev.Procurement.Application;
 using VivaBev.Procurement.Contracts;
+using VivaBev.Procurement.Domain.PurchaseOrders;
 using VivaBev.Procurement.Domain.Requisitions;
 using VivaBev.Procurement.Domain.Sourcing;
 using VivaBev.Procurement.Infrastructure;
@@ -94,6 +95,12 @@ internal static class RequisitionEndpoints
                 .Select(e => new { e.Id, e.Number })
                 .FirstOrDefaultAsync(ct);
 
+            var order = await db.PurchaseOrders.AsNoTracking()
+                .Where(p => p.Status != PurchaseOrderStatus.Cancelled && p.Lines.Any(l => l.RequisitionId == r.Id))
+                .OrderByDescending(p => p.Number)
+                .Select(p => new { p.Id, p.Number })
+                .FirstOrDefaultAsync(ct);
+
             return Results.Ok(new RequisitionDetailDto(
                 r.Id, r.Number, r.Title, r.Justification, r.Status.ToString(),
                 r.RequesterId, requester?.DisplayName ?? "(unknown user)",
@@ -106,7 +113,7 @@ internal static class RequisitionEndpoints
                         l.LineNo, l.LineType.ToString(), l.ItemId, l.ItemCode, l.Description, l.CategoryId,
                         l.Quantity, l.UomCode, l.EstimatedUnitPrice, l.LineTotal))
                     .ToList(),
-                r.CostCentreId, r.DeliverToSiteId, sourcing?.Id, sourcing?.Number));
+                r.CostCentreId, r.DeliverToSiteId, sourcing?.Id, sourcing?.Number, order?.Id, order?.Number));
         });
 
         // The approval chain, for anyone who may see the requisition (204 if it was never submitted)

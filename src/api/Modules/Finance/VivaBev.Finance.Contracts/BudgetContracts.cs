@@ -15,7 +15,7 @@ public interface IBudgets
     /// <summary>Reserves an amount against a budget. Call inside the caller's transaction.</summary>
     Task CommitAsync(BudgetCommitmentRequest request, CancellationToken ct = default);
 
-    /// <summary>Releases a document's open commitment, if it has one.</summary>
+    /// <summary>Releases a document's open commitments (in every budget), if it has any.</summary>
     Task ReleaseAsync(string documentType, Guid documentId, CancellationToken ct = default);
 }
 

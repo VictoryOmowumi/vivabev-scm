@@ -8,6 +8,7 @@ export function AppToaster() {
     <Toaster
       theme={resolvedTheme}
       position="bottom-right"
+      className="print:hidden"
       duration={5000}
       toastOptions={{
         classNames: {

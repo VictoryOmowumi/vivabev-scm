@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using VivaBev.Infrastructure.Persistence;
+using VivaBev.Procurement.Domain.PurchaseOrders;
 using VivaBev.Procurement.Domain.Requisitions;
 using VivaBev.Procurement.Domain.Sourcing;
 
@@ -13,4 +14,5 @@ public sealed class ProcurementDbContext(DbContextOptions<ProcurementDbContext> 
 
     public DbSet<Requisition> Requisitions => Set<Requisition>();
     public DbSet<SourcingEvent> SourcingEvents => Set<SourcingEvent>();
+    public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
 }

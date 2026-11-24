@@ -68,7 +68,7 @@ export function RequisitionDetailPage() {
         </div>
       </section>
 
-      {mine && r.status !== 'Cancelled' && r.status !== 'InSourcing' && (
+      {mine && (r.status === 'Draft' || r.status === 'PendingApproval' || r.status === 'Approved') && (
         <section aria-label="Your actions" className="flex flex-wrap items-center justify-end gap-2">
           {r.status === 'Draft' && (
             <Button asChild size="pill-sm">
@@ -93,6 +93,15 @@ export function RequisitionDetailPage() {
             ? <Link to={`/sourcing/${r.sourcingEventId}`} className="font-semibold underline">{r.sourcingEventNumber}</Link>
             : r.sourcingEventNumber}
           . You can't cancel it while it's on the RFQ.
+        </div>
+      )}
+      {r.purchaseOrderNumber && r.status === 'Ordered' && (
+        <div role="status" className="rounded-2xl bg-success px-5 py-4 text-sm text-success-foreground">
+          <strong>Ordered</strong> on purchase order{' '}
+          {can(user, Permission.PurchaseOrdersView)
+            ? <Link to={`/purchase-orders/${r.purchaseOrderId}`} className="font-semibold underline">{r.purchaseOrderNumber}</Link>
+            : r.purchaseOrderNumber}
+          . The supplier has it; the warehouse receives the goods next.
         </div>
       )}
       {r.status === 'Cancelled' && r.cancellationReason && (

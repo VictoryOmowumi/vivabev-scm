@@ -17,6 +17,7 @@ public static class ProcurementModule
         services.AddModuleDbContext<ProcurementDbContext>(configuration, ProcurementDbContext.SchemaName);
         services.AddScoped<RequisitionService>();
         services.AddScoped<SourcingService>();
+        services.AddScoped<PurchaseOrderService>();
         services.AddScoped<IRequisitionQueries, RequisitionQueries>();
         services.AddScoped<IApprovalOutcomeHandler, RequisitionApprovalHandler>();
         services.AddScoped<IApprovalOutcomeHandler, SourcingAwardApprovalHandler>();
@@ -27,6 +28,7 @@ public static class ProcurementModule
     {
         RequisitionEndpoints.Map(app);
         SourcingEndpoints.Map(app);
+        PurchaseOrderEndpoints.Map(app);
         return app;
     }
 }

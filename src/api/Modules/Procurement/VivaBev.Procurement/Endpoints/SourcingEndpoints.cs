@@ -6,6 +6,7 @@ using VivaBev.Approvals.Contracts;
 using VivaBev.Identity.Contracts;
 using VivaBev.Procurement.Application;
 using VivaBev.Procurement.Contracts;
+using VivaBev.Procurement.Domain.PurchaseOrders;
 using VivaBev.Procurement.Domain.Requisitions;
 using VivaBev.Procurement.Domain.Sourcing;
 using VivaBev.Procurement.Infrastructure;
@@ -68,6 +69,10 @@ internal static class SourcingEndpoints
                 e.Invitations.Select(i => i.SupplierId).Concat(e.Quotations.Select(q => q.SupplierId)).ToList(), ct);
             string Name(Guid supplierId) => names.GetValueOrDefault(supplierId) ?? "(unknown supplier)";
             var evaluation = e.Evaluate();
+            var order = await db.PurchaseOrders.AsNoTracking()
+                .Where(p => p.SourcingEventId == e.Id && p.Status != PurchaseOrderStatus.Cancelled)
+                .Select(p => new { p.Id, p.Number, p.Status })
+                .FirstOrDefaultAsync(ct);
 
             return Results.Ok(new SourcingEventDetailDto(
                 e.Id, e.Number, e.Title, e.Status.ToString(), e.BuyerId, buyer?.DisplayName ?? "(unknown user)",
@@ -104,7 +109,8 @@ internal static class SourcingEndpoints
                         e.AwardJustification, e.AwardRecommendedAt!.Value, e.AwardedAt,
                         evaluation.FirstOrDefault(v => v.QuotationId == award.Id)?.Rank == 1)
                     : null,
-                e.AwardRejectionReason));
+                e.AwardRejectionReason,
+                order?.Id, order?.Number, order?.Status.ToString()));
         });
 
         // The award's approval chain, like a requisition's

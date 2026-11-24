@@ -33,8 +33,8 @@ The award policy's first step is "any Procurement manager". If a Procurement man
 
 **When to revisit:** before real use. In `ApprovalService.StartAsync`, when a step resolves to the requester, escalate to the requester's manager (or the next person in the role).
 
-## Budget commitments stay at the requisition estimate after an award (Finance)
+## Issued purchase orders can't be cancelled (Procurement)
 
-Budgets commit the requisitions' estimated totals at approval. An award above the estimate adds a Finance controller step, but it doesn't change the committed amount.
+A draft order can be cancelled, but an issued one can't yet. Cancelling an issued order means telling the supplier, releasing the order's budget commitment, and deciding what happens to its requisitions (back to sourcing, or cancelled).
 
-**When to revisit:** with purchase orders. The PO should re-commit the actual amount and release the difference.
+**When to revisit:** with goods receipt. An order with nothing received can be cancelled; one that is partly received is closed short instead.

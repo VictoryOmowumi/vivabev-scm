@@ -84,7 +84,10 @@ public sealed record SourcingEventDetailDto(
     IReadOnlyList<EvaluationCriterionDto> Criteria,
     IReadOnlyList<QuotationEvaluationDto> Evaluation, // best first; only quotations that price every line
     SourcingAwardDto? Award,                          // the current recommendation or approved award
-    string? AwardRejectionReason);                    // why the last recommendation was rejected
+    string? AwardRejectionReason,                     // why the last recommendation was rejected
+    Guid? PurchaseOrderId,                            // the live (not cancelled) order raised from the award
+    string? PurchaseOrderNumber,
+    string? PurchaseOrderStatus);
 
 // ---------- evaluation and award ----------
 

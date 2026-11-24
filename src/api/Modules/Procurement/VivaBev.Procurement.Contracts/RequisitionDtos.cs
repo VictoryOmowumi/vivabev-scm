@@ -64,7 +64,9 @@ public sealed record RequisitionDetailDto(
     Guid CostCentreId,
     Guid DeliverToSiteId,
     Guid? SourcingEventId,          // the RFQ it's on, when Procurement is sourcing it
-    string? SourcingEventNumber);
+    string? SourcingEventNumber,
+    Guid? PurchaseOrderId,          // the issued order it went out on
+    string? PurchaseOrderNumber);
 
 /// <summary>A cost centre the requester may charge, with where its budget stands right now.</summary>
 public sealed record CostCentreOptionDto(

@@ -10,6 +10,8 @@ import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { RequisitionDetailPage } from '@/features/requisitions/requisition-detail-page'
 import { RequisitionEditorPage } from '@/features/requisitions/requisition-editor-page'
 import { RequisitionsPage } from '@/features/requisitions/requisitions-page'
+import { PurchaseOrderPage } from '@/features/purchase-orders/purchase-order-page'
+import { PurchaseOrdersPage } from '@/features/purchase-orders/purchase-orders-page'
 import { NewRfqPage } from '@/features/sourcing/new-rfq-page'
 import { RfqPage } from '@/features/sourcing/rfq-page'
 import { SourcingPage } from '@/features/sourcing/sourcing-page'
@@ -35,6 +37,8 @@ export const router = createBrowserRouter([
           { path: 'sourcing', element: <SourcingPage /> },
           { path: 'sourcing/new', element: <NewRfqPage /> },
           { path: 'sourcing/:id', element: <RfqPage /> },
+          { path: 'purchase-orders', element: <PurchaseOrdersPage /> },
+          { path: 'purchase-orders/:id', element: <PurchaseOrderPage /> },
           { path: 'copilot', element: <ComingSoonPage title="Copilot" /> },
           { path: '*', element: <ComingSoonPage title="Page not found" /> },
         ],
