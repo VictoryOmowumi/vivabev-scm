@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { FieldSelect } from '@/components/field-select'
 import { Link, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -225,10 +226,8 @@ function Categories({ s, manage, approver }: { s: SupplierDetail; manage: boolea
       </ul>
       {manage && s.status !== 'Blocked' && (
         <div className="flex flex-wrap items-center gap-2 border-t pt-3">
-          <select aria-label="Category to request" value={choice} onChange={(e) => setChoice(e.target.value)} className={cn(fieldClass, 'h-10 min-w-0 flex-[1_1_220px]')}>
-            <option value="">Request a category…</option>
-            {options.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
-          </select>
+          <FieldSelect aria-label="Category to request" size="sm" className="min-w-0 flex-[1_1_220px]" value={choice} onChange={setChoice}
+            placeholder="Request a category…" options={options.map((c) => ({ value: c.id, label: `${c.name} (${c.code})` }))} />
           <Button size="pill-sm" variant="brand" disabled={!choice || request.isPending}
             onClick={() => request.mutate(choice, { onSuccess: () => { toast('Category requested'); setChoice('') } })}>Request</Button>
           {s.status === 'Approved' && <span className="text-xs text-muted-foreground">New requests on an approved supplier need a manager's approval.</span>}

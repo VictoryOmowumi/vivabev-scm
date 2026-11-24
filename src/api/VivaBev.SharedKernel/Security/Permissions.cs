@@ -54,6 +54,8 @@ public static class Permissions
         public const string ViewBudgets = "finance.budgets.view";                      // every cost centre
         public const string ViewDepartmentBudgets = "finance.budgets.view-department"; // your department's, read-only
         public const string ManageBudgets = "finance.budgets.manage";
+        public const string ViewInvoices = "finance.invoices.view";     // see supplier invoices and how they matched
+        public const string ManageInvoices = "finance.invoices.manage"; // record, approve, reject and pay them
     }
 
     public static readonly IReadOnlyList<string> All =
@@ -66,5 +68,6 @@ public static class Permissions
         PurchaseOrders.View, PurchaseOrders.Manage,
         Inventory.View, Inventory.Receive,
         Finance.ViewBudgets, Finance.ViewDepartmentBudgets, Finance.ManageBudgets,
+        Finance.ViewInvoices, Finance.ManageInvoices,
     ];
 }

@@ -49,6 +49,26 @@ public sealed class Budget : AggregateRoot
         return commitment;
     }
 
+    /// <summary>
+    /// Records spend: an approved invoice moves its amount out of the order's open commitment (as far as it goes)
+    /// and into a consumed line of its own. Spend beyond the commitment is still recorded, so overspend shows.
+    /// </summary>
+    public BudgetCommitment Consume(string commitmentType, Guid commitmentDocumentId, string consumerType,
+        Guid consumerDocumentId, string consumerNumber, decimal amount, DateTime now)
+    {
+        if (amount <= 0)
+            throw new DomainException("Spend must be greater than zero.");
+
+        _commitments.SingleOrDefault(c => c.DocumentType == commitmentType && c.DocumentId == commitmentDocumentId
+                                          && c.Status == CommitmentStatus.Open)
+            ?.Reduce(amount, now);
+
+        var consumed = new BudgetCommitment(Id, consumerType, consumerDocumentId, consumerNumber, amount, now);
+        consumed.MarkConsumed(now);
+        _commitments.Add(consumed);
+        return consumed;
+    }
+
     /// <summary>Releases the document's open commitment. Returns false if it had none.</summary>
     public bool Release(string documentType, Guid documentId, DateTime now)
     {

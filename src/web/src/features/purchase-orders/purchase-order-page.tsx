@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { FieldSelect } from '@/components/field-select'
 import { Link, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { HugeiconsIcon } from '@hugeicons/react'
@@ -14,6 +15,8 @@ import { fieldClass } from '@/lib/field-class'
 import { formatDate, formatDateTime, formatNaira } from '@/lib/format'
 import { can, Permission } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
+import { InvoiceStatusBadge } from '@/features/invoices/invoice-status-badge'
+import { useInvoices } from '@/features/invoices/invoices-api'
 import { useReceipts } from '@/features/warehouse/warehouse-api'
 import { OrderStatusBadge } from './order-status-badge'
 import { useCancelOrder, useIssueOrder, usePurchaseOrder, useUpdateDelivery, type PurchaseOrderDetail } from './purchase-orders-api'
@@ -72,6 +75,9 @@ export function PurchaseOrderPage() {
 
       {manage && po.status === 'Draft' && <DraftActions po={po} />}
       {(po.status === 'PartiallyReceived' || po.status === 'Received') && can(user, Permission.InventoryView) && <Receipts po={po} />}
+      {po.status !== 'Draft' && po.status !== 'Cancelled' && can(user, Permission.InvoicesView) && (
+        <Invoices po={po} canRecord={can(user, Permission.InvoicesManage)} />
+      )}
 
       <OrderDocument po={po} />
     </div>
@@ -108,10 +114,10 @@ function DraftActions({ po }: { po: PurchaseOrderDetail }) {
       <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
         <label className="flex flex-col gap-1.5 text-[13px] font-semibold">
           Deliver to
-          <select value={siteId} onChange={(e) => setSiteId(e.target.value)} className={fieldClass}>
-            {!sites.data && <option value={po.deliverTo.id}>{po.deliverTo.code} · {po.deliverTo.name}</option>}
-            {sites.data?.filter((s) => s.isActive).map((s) => <option key={s.id} value={s.id}>{s.code} · {s.name}, {s.city}</option>)}
-          </select>
+          <FieldSelect aria-label="Deliver to" value={siteId} onChange={setSiteId}
+            options={sites.data
+              ? sites.data.filter((s) => s.isActive).map((s) => ({ value: s.id, label: `${s.code} · ${s.name}, ${s.city}` }))
+              : [{ value: po.deliverTo.id, label: `${po.deliverTo.code} · ${po.deliverTo.name}` }]} />
         </label>
         <label className="flex flex-col gap-1.5 text-[13px] font-semibold">
           Expected delivery
@@ -303,6 +309,35 @@ function Receipts({ po }: { po: PurchaseOrderDetail }) {
             </span>
             {r.hasRejections && <span className="rounded-full bg-over px-2.5 py-0.5 text-xs font-bold text-over-foreground">Some rejected</span>}
             <span className="font-semibold">{formatNaira(r.acceptedValue)}</span>
+          </li>
+        ))}
+      </ul>
+    </Panel>
+  )
+}
+
+/** Supplier invoices against this order and how they matched. */
+function Invoices({ po, canRecord }: { po: PurchaseOrderDetail; canRecord: boolean }) {
+  const invoices = useInvoices(po.id)
+  const live = (invoices.data ?? []).filter((i) => i.status !== 'Rejected')
+  return (
+    <Panel className="flex flex-col gap-2 px-6 py-5 print:hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-xl font-normal">Invoices</h2>
+        <div className="flex items-center gap-3">
+          {live.length > 0 && <span className="text-[13px] text-muted-foreground">{formatNaira(live.reduce((s, i) => s + i.total, 0))} invoiced incl. VAT</span>}
+          {canRecord && <Button asChild size="pill-sm" variant="outline"><Link to={`/invoices/new?order=${po.id}`}>Record invoice</Link></Button>}
+        </div>
+      </div>
+      {invoices.isPending && <Skeleton className="h-12 rounded-2xl" />}
+      {invoices.data?.length === 0 && <p className="text-sm text-muted-foreground">No invoices from {po.supplier.name} yet.</p>}
+      <ul className="flex flex-col divide-y">
+        {invoices.data?.map((i) => (
+          <li key={i.id} className="flex flex-wrap items-center gap-3 py-2.5 text-sm">
+            <Link to={`/invoices/${i.id}`} className="font-semibold hover:text-brand">{i.supplierInvoiceNumber}</Link>
+            <span className="min-w-0 flex-1 text-xs text-muted-foreground">{i.number} · dated {formatDate(i.invoiceDate)} · due {formatDate(i.dueDate)}</span>
+            <span className="font-semibold">{formatNaira(i.total)}</span>
+            <InvoiceStatusBadge status={i.status} />
           </li>
         ))}
       </ul>

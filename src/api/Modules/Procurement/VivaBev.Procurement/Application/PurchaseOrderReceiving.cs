@@ -18,6 +18,18 @@ internal sealed class PurchaseOrderReceiving(ProcurementDbContext db) : IPurchas
         return orders.Select(ToDto).ToList();
     }
 
+    public async Task<IReadOnlyList<ReceivableOrderDto>> GetInvoiceableAsync(CancellationToken ct = default)
+    {
+        var orders = await db.PurchaseOrders.AsNoTracking()
+            .Include(p => p.Lines)
+            .Where(p => p.Status == PurchaseOrderStatus.Issued || p.Status == PurchaseOrderStatus.PartiallyReceived
+                        || p.Status == PurchaseOrderStatus.Received)
+            .OrderByDescending(p => p.Number)
+            .Take(200)
+            .ToListAsync(ct);
+        return orders.Select(ToDto).ToList();
+    }
+
     public async Task<ReceivableOrderDto?> GetOrderAsync(Guid purchaseOrderId, CancellationToken ct = default)
     {
         var order = await db.PurchaseOrders.AsNoTracking()
@@ -39,6 +51,7 @@ internal sealed class PurchaseOrderReceiving(ProcurementDbContext db) : IPurchas
         new(p.Id, p.Number, p.Status.ToString(), p.SupplierId, p.DeliverToSiteId, p.ExpectedDelivery, p.IssuedAt, p.Total,
             p.Lines.OrderBy(l => l.LineNo)
                 .Select(l => new ReceivableLineDto(l.Id, l.LineNo, l.ItemId, l.ItemCode, l.Description, l.UomCode,
-                    l.Quantity, l.QuantityReceived, l.Outstanding, l.UnitPrice))
-                .ToList());
+                    l.Quantity, l.QuantityReceived, l.Outstanding, l.UnitPrice, l.CostCentreId, l.BudgetFiscalYear))
+                .ToList(),
+            p.PaymentTermsDays);
 }

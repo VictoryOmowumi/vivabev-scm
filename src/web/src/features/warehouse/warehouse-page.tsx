@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { FieldSelect } from '@/components/field-select'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { DeliveryTruck01Icon, PackageIcon } from '@hugeicons/core-free-icons'
 import { Panel } from '@/components/panel'
@@ -8,7 +9,6 @@ import { TableSkeleton } from '@/components/states/table-skeleton'
 import { Button } from '@/components/ui/button'
 import { useCurrentUser } from '@/features/auth/use-auth'
 import { OrderStatusBadge } from '@/features/purchase-orders/order-status-badge'
-import { fieldClass } from '@/lib/field-class'
 import { formatDate, formatDateTime, formatNaira } from '@/lib/format'
 import { can, Permission } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
@@ -164,10 +164,8 @@ function Stock() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <select aria-label="Site" value={site} onChange={(e) => setSite(e.target.value)} className={cn(fieldClass, 'h-10 w-56')}>
-          <option value="">All sites</option>
-          {sites.map(([id, code]) => <option key={id} value={id}>{code}</option>)}
-        </select>
+        <FieldSelect aria-label="Site" size="sm" className="w-56" value={site || 'all'} onChange={(v) => setSite(v === 'all' ? '' : v)}
+          options={[{ value: 'all', label: 'All sites' }, ...sites.map(([id, code]) => ({ value: id, label: code }))]} />
         <span className="text-sm text-muted-foreground">
           {rows.length} item{rows.length === 1 ? '' : 's'} · <strong className="text-foreground">{formatNaira(rows.reduce((s, r) => s + r.value, 0))}</strong> at cost
         </span>

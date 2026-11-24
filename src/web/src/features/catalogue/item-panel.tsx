@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { FieldSelect } from '@/components/field-select'
 import { toast } from 'sonner'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Cancel01Icon } from '@hugeicons/core-free-icons'
@@ -105,22 +106,17 @@ function ItemForm({ item, manage, defaultCategoryId, onCreated }: {
       </FormField>
       <div className="grid grid-cols-2 gap-3">
         <FormField id="item-type" label="Type">
-          <select id="item-type" value={itemType} disabled={!!item || readOnly} onChange={(e) => setItemType(e.target.value as ItemType)} className={fieldClass}>
-            {itemTypes.map((t) => <option key={t} value={t}>{itemTypeLabels[t]}</option>)}
-          </select>
+          <FieldSelect id="item-type" value={itemType} disabled={!!item || readOnly} onChange={(v) => setItemType(v as ItemType)}
+            options={itemTypes.map((t) => ({ value: t, label: itemTypeLabels[t] }))} />
         </FormField>
         <FormField id="item-uom" label="Unit">
-          <select id="item-uom" value={uom} disabled={!!item || readOnly} onChange={(e) => setUom(e.target.value)} className={fieldClass}>
-            {!units.data && <option value={uom}>{uom}</option>}
-            {units.data?.map((u) => <option key={u.code} value={u.code}>{u.code} · {u.name}</option>)}
-          </select>
+          <FieldSelect id="item-uom" value={uom} disabled={!!item || readOnly} onChange={setUom}
+            options={units.data ? units.data.map((u) => ({ value: u.code, label: `${u.code} · ${u.name}` })) : [{ value: uom, label: uom }]} />
         </FormField>
       </div>
       <FormField id="item-category" label="Category" hint="Suppliers are approved by category, so this decides who can quote for it.">
-        <select id="item-category" required value={categoryId} disabled={readOnly} onChange={(e) => setCategoryId(e.target.value)} className={fieldClass}>
-          <option value="">Choose…</option>
-          {categories.data?.filter((c) => c.isActive || c.id === categoryId).map((c) => <option key={c.id} value={c.id}>{c.name} ({c.code})</option>)}
-        </select>
+        <FieldSelect id="item-category" value={categoryId} disabled={readOnly} onChange={setCategoryId}
+          options={(categories.data ?? []).filter((c) => c.isActive || c.id === categoryId).map((c) => ({ value: c.id, label: `${c.name} (${c.code})` }))} />
       </FormField>
       <FormField id="item-description" label="Description">
         <textarea id="item-description" rows={2} maxLength={1000} value={description} disabled={readOnly}

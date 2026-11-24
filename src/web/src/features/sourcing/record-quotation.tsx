@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
+import { FieldSelect } from '@/components/field-select'
 import { toast } from 'sonner'
 import { Panel } from '@/components/panel'
 import { Button } from '@/components/ui/button'
@@ -67,10 +68,8 @@ export function RecordQuotation({ rfq }: { rfq: SourcingEventDetail }) {
       <form onSubmit={submit} className="flex flex-col gap-4">
         <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
           <Field label="Supplier" className="col-span-full sm:col-span-2">
-            <select required value={supplierId} onChange={(e) => setSupplierId(e.target.value)} className={fieldClass}>
-              <option value="">Choose…</option>
-              {waiting.map((i) => <option key={i.supplierId} value={i.supplierId}>{i.supplierName}</option>)}
-            </select>
+            <FieldSelect aria-label="Supplier" value={supplierId} onChange={setSupplierId}
+              options={waiting.map((i) => ({ value: i.supplierId, label: i.supplierName }))} />
           </Field>
           <Field label="Their reference">
             <input value={reference} maxLength={50} onChange={(e) => setReference(e.target.value)} className={fieldClass} placeholder="Q-0412" />

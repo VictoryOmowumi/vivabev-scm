@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { FieldSelect } from '@/components/field-select'
 import { FormField } from '@/components/form-field'
 import { Button } from '@/components/ui/button'
 import { fieldClass } from '@/lib/field-class'
@@ -57,23 +58,18 @@ export function DetailsForm({ initial, costCentres, sites, submitLabel, pendingL
       <div className="grid gap-4 sm:grid-cols-2">
         <FormField id="costCentre" label="Cost centre" error={show('costCentreId')}
           hint={costCentres.length === 0 ? 'Your department has no active cost centres. Ask Finance.' : undefined}>
-          <select id="costCentre" className={fieldClass} value={values.costCentreId} aria-invalid={!!show('costCentreId')}
-            onChange={(e) => { set('costCentreId', e.target.value); onCostCentreChange?.(e.target.value) }}>
-            <option value="">Choose…</option>
-            {costCentres.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.code} · {c.name}{c.hasBudget ? ` · ${formatNaira(c.available - c.inApproval)} free` : ' · no budget'}
-              </option>
-            ))}
-          </select>
+          <FieldSelect id="costCentre" value={values.costCentreId} aria-invalid={!!show('costCentreId')}
+            onChange={(v) => { set('costCentreId', v); onCostCentreChange?.(v) }}
+            options={costCentres.map((c) => ({
+              value: c.id,
+              label: `${c.code} · ${c.name}${c.hasBudget ? ` · ${formatNaira(c.available - c.inApproval)} free` : ' · no budget'}`,
+            }))} />
         </FormField>
 
         <FormField id="site" label="Deliver to" error={show('deliverToSiteId')}>
-          <select id="site" className={fieldClass} value={values.deliverToSiteId} aria-invalid={!!show('deliverToSiteId')}
-            onChange={(e) => set('deliverToSiteId', e.target.value)}>
-            <option value="">Choose…</option>
-            {sites.map((s) => <option key={s.id} value={s.id}>{s.code} · {s.name}, {s.city}</option>)}
-          </select>
+          <FieldSelect id="site" value={values.deliverToSiteId} aria-invalid={!!show('deliverToSiteId')}
+            onChange={(v) => set('deliverToSiteId', v)}
+            options={sites.map((s) => ({ value: s.id, label: `${s.code} · ${s.name}, ${s.city}` }))} />
         </FormField>
       </div>
 

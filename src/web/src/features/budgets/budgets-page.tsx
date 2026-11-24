@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react'
+import { FieldSelect } from '@/components/field-select'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -163,14 +164,9 @@ function SetBudget({ year }: { year: number }) {
       </div>
       <form onSubmit={submit} className="grid items-end gap-3 sm:grid-cols-[2fr_1fr_auto]">
         <FormField id="set-cc" label="Cost centre">
-          <select id="set-cc" className={fieldClass} value={costCentreId} onChange={(e) => setCostCentreId(e.target.value)}>
-            <option value="">Choose…</option>
-            {departments.data?.filter((d) => d.isActive).map((d) => (
-              <optgroup key={d.id} label={`${d.code} · ${d.name}`}>
-                {d.costCentres.filter((c) => c.isActive).map((c) => <option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}
-              </optgroup>
-            ))}
-          </select>
+          <FieldSelect id="set-cc" value={costCentreId} onChange={setCostCentreId}
+            options={(departments.data ?? []).filter((d) => d.isActive).flatMap((d) =>
+              d.costCentres.filter((c) => c.isActive).map((c) => ({ value: c.id, label: `${d.code} · ${c.code} · ${c.name}` })))} />
         </FormField>
         <FormField id="set-amount" label="Amount (₦)">
           <input id="set-amount" type="number" min="0" step="1000" inputMode="numeric" className={fieldClass}
