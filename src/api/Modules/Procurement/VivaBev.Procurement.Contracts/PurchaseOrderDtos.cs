@@ -17,7 +17,8 @@ public sealed record PurchaseOrderSummaryDto(
 
 public sealed record PurchaseOrderLineDto(
     Guid Id, int LineNo, Guid RequisitionId, string RequisitionNumber, string CostCentreCode, string? ItemCode,
-    string Description, decimal Quantity, string UomCode, decimal UnitPrice, decimal LineTotal);
+    string Description, decimal Quantity, string UomCode, decimal UnitPrice, decimal LineTotal,
+    decimal QuantityReceived);
 
 /// <summary>Who the order is addressed to, as it prints on the PO.</summary>
 public sealed record PurchaseOrderSupplierDto(

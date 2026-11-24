@@ -30,6 +30,7 @@ export type CatalogueItem = {
   baseUomCode: string
   isStocked: boolean
   isActive: boolean
+  categoryId: string
 }
 
 // Lists that rarely change: fetch once per session

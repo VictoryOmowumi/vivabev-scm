@@ -5,8 +5,10 @@ namespace VivaBev.Procurement.Domain.PurchaseOrders;
 public enum PurchaseOrderStatus
 {
     Draft,     // raised from an award; the buyer checks delivery details
-    Issued,    // sent to the supplier; requisitions are Ordered and the budget holds the real amount
-    Cancelled  // a draft that was dropped
+    Issued,            // sent to the supplier; requisitions are Ordered and the budget holds the real amount
+    PartiallyReceived, // the warehouse has received some of it
+    Received,          // everything ordered has been received
+    Cancelled          // a draft that was dropped
 }
 
 /// <summary>
@@ -88,6 +90,24 @@ public sealed class PurchaseOrder : AggregateRoot
 
         Status = PurchaseOrderStatus.Issued;
         IssuedAt = now;
+    }
+
+    /// <summary>The warehouse accepted these quantities against the order's lines (rejected goods don't count).</summary>
+    public void RecordReceipt(IReadOnlyCollection<(Guid LineId, decimal Quantity)> received)
+    {
+        if (Status is not (PurchaseOrderStatus.Issued or PurchaseOrderStatus.PartiallyReceived))
+            throw new DomainException($"Cannot receive against a purchase order that is {Status}.");
+        if (received.Count == 0)
+            throw new DomainException("Receive at least one line.");
+
+        foreach (var (lineId, quantity) in received)
+        {
+            var line = _lines.SingleOrDefault(l => l.Id == lineId)
+                ?? throw new DomainException("A received line is not on this purchase order.");
+            line.Receive(quantity);
+        }
+
+        Status = _lines.All(l => l.Outstanding == 0) ? PurchaseOrderStatus.Received : PurchaseOrderStatus.PartiallyReceived;
     }
 
     public void Cancel(string reason)

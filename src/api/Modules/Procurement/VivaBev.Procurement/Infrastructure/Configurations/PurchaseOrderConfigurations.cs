@@ -44,6 +44,8 @@ internal sealed class PurchaseOrderLineConfiguration : IEntityTypeConfiguration<
         builder.Property(l => l.Description).HasMaxLength(500);
         builder.Property(l => l.UomCode).HasMaxLength(10);
         builder.Property(l => l.Quantity).HasPrecision(18, 4);
+        builder.Property(l => l.QuantityReceived).HasPrecision(18, 4);
         builder.Ignore(l => l.LineTotal);
+        builder.Ignore(l => l.Outstanding);
     }
 }

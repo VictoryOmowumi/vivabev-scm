@@ -38,3 +38,15 @@ The award policy's first step is "any Procurement manager". If a Procurement man
 A draft order can be cancelled, but an issued one can't yet. Cancelling an issued order means telling the supplier, releasing the order's budget commitment, and deciding what happens to its requisitions (back to sourcing, or cancelled).
 
 **When to revisit:** with goods receipt. An order with nothing received can be cancelled; one that is partly received is closed short instead.
+
+## Supplier contacts and addresses can't be edited in the app (Suppliers)
+
+A supplier gets one contact when it's created. There are no endpoints yet to add, change or remove contacts and addresses, so the supplier page only displays them.
+
+**When to revisit:** before suppliers are onboarded for real. Add the endpoints, plus an edit panel on the supplier page.
+
+## Stock goes in but never comes out (Inventory)
+
+Receipts add stock movements. Nothing issues stock out to departments or adjusts it after a count, so stock on hand only ever grows.
+
+**When to revisit:** with stock issues and stock counts. Both add negative movements to the same ledger.

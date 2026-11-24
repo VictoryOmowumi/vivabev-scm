@@ -158,6 +158,10 @@ namespace VivaBev.Procurement.Infrastructure.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("decimal(18,4)");
 
+                    b.Property<decimal>("QuantityReceived")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("decimal(18,4)");
+
                     b.Property<Guid>("RequisitionId")
                         .HasColumnType("uniqueidentifier");
 

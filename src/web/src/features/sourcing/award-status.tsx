@@ -54,7 +54,7 @@ export function AwardStatus({ rfq, manage }: { rfq: SourcingEventDetail; manage:
             <Link to={`/purchase-orders/${rfq.purchaseOrderId}`} className="font-semibold text-inverse-foreground underline hover:text-inverse-foreground">
               {rfq.purchaseOrderNumber}
             </Link>{' '}
-            · {rfq.purchaseOrderStatus === 'Issued' ? 'issued to the supplier' : 'draft, not yet issued'}
+            · {rfq.purchaseOrderStatus === 'Draft' ? 'draft, not yet issued' : rfq.purchaseOrderStatus === 'Received' ? 'received in full' : rfq.purchaseOrderStatus === 'PartiallyReceived' ? 'partly received' : 'issued to the supplier'}
           </p>
         )}
         {rfq.status === 'Awarded' && !rfq.purchaseOrderId && (

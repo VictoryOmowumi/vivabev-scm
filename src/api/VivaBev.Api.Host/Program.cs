@@ -4,6 +4,7 @@ using VivaBev.Catalogue;
 using VivaBev.Finance;
 using VivaBev.Identity;
 using VivaBev.Infrastructure.Persistence;
+using VivaBev.Inventory;
 using VivaBev.Numbering;
 using VivaBev.Procurement;
 using VivaBev.SharedKernel.Abstractions;
@@ -28,6 +29,7 @@ builder.Services.AddCatalogueModule(builder.Configuration);
 builder.Services.AddSuppliersModule(builder.Configuration);
 builder.Services.AddProcurementModule(builder.Configuration);
 builder.Services.AddFinanceModule(builder.Configuration);
+builder.Services.AddInventoryModule(builder.Configuration);
 
 var app = builder.Build();
 
@@ -55,5 +57,6 @@ app.MapSuppliersEndpoints();
 app.MapProcurementEndpoints();
 app.MapApprovalsEndpoints();
 app.MapFinanceEndpoints();
+app.MapInventoryEndpoints();
 
 app.Run();

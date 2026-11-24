@@ -18,6 +18,7 @@ public static class ProcurementModule
         services.AddScoped<RequisitionService>();
         services.AddScoped<SourcingService>();
         services.AddScoped<PurchaseOrderService>();
+        services.AddScoped<IPurchaseOrderReceiving, PurchaseOrderReceiving>();
         services.AddScoped<IRequisitionQueries, RequisitionQueries>();
         services.AddScoped<IApprovalOutcomeHandler, RequisitionApprovalHandler>();
         services.AddScoped<IApprovalOutcomeHandler, SourcingAwardApprovalHandler>();

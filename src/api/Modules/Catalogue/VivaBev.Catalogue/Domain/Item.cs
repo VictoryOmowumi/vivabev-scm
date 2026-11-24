@@ -55,5 +55,16 @@ public sealed class Item : AggregateRoot
         ShelfLifeDays = shelfLifeDays;
     }
 
+    public void UpdateDetails(string name, string? description, Guid categoryId)
+    {
+        Name = Guard.Required(name, nameof(name), 200);
+        Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+        if (Description?.Length > 1000)
+            throw new DomainException("Keep the description under 1,000 characters.");
+        CategoryId = categoryId;
+    }
+
     public void Deactivate() => IsActive = false;
+
+    public void Activate() => IsActive = true;
 }

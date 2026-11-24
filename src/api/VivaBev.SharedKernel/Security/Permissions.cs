@@ -43,6 +43,12 @@ public static class Permissions
         public const string Manage = "purchase-orders.manage"; // raise, issue and cancel them
     }
 
+    public static class Inventory
+    {
+        public const string View = "inventory.view";       // see receipts and stock
+        public const string Receive = "inventory.receive"; // record goods received against purchase orders
+    }
+
     public static class Finance
     {
         public const string ViewBudgets = "finance.budgets.view";                      // every cost centre
@@ -58,6 +64,7 @@ public static class Permissions
         Requisitions.Create, Requisitions.ViewDepartment, Requisitions.ViewAll,
         Sourcing.View, Sourcing.Manage,
         PurchaseOrders.View, PurchaseOrders.Manage,
+        Inventory.View, Inventory.Receive,
         Finance.ViewBudgets, Finance.ViewDepartmentBudgets, Finance.ManageBudgets,
     ];
 }

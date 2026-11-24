@@ -15,6 +15,12 @@ import { PurchaseOrdersPage } from '@/features/purchase-orders/purchase-orders-p
 import { NewRfqPage } from '@/features/sourcing/new-rfq-page'
 import { RfqPage } from '@/features/sourcing/rfq-page'
 import { SourcingPage } from '@/features/sourcing/sourcing-page'
+import { CataloguePage } from '@/features/catalogue/catalogue-page'
+import { SupplierPage } from '@/features/suppliers/supplier-page'
+import { SuppliersPage } from '@/features/suppliers/suppliers-page'
+import { ReceiptPage } from '@/features/warehouse/receipt-page'
+import { ReceivePage } from '@/features/warehouse/receive-page'
+import { WarehousePage } from '@/features/warehouse/warehouse-page'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -30,8 +36,12 @@ export const router = createBrowserRouter([
           { path: 'requisitions/:id/edit', element: <RequisitionEditorPage /> },
           { path: 'requisitions/:id', element: <RequisitionDetailPage /> },
           { path: 'approvals', element: <ApprovalsPage /> },
-          { path: 'suppliers', element: <ComingSoonPage title="Suppliers" /> },
-          { path: 'catalogue', element: <ComingSoonPage title="Catalogue" /> },
+          { path: 'suppliers', element: <SuppliersPage /> },
+          { path: 'suppliers/:id', element: <SupplierPage /> },
+          { path: 'catalogue', element: <CataloguePage /> },
+          { path: 'warehouse', element: <WarehousePage /> },
+          { path: 'warehouse/orders/:id', element: <ReceivePage /> },
+          { path: 'warehouse/receipts/:id', element: <ReceiptPage /> },
           { path: 'budgets', element: <BudgetsPage /> },
           { path: 'budgets/:id', element: <BudgetDetailPage /> },
           { path: 'sourcing', element: <SourcingPage /> },

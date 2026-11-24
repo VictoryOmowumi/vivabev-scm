@@ -23,4 +23,6 @@ public sealed class Category : AggregateRoot
     public void Rename(string name) => Name = Guard.Required(name, nameof(name), 100);
 
     public void Deactivate() => IsActive = false;
+
+    public void Activate() => IsActive = true;
 }

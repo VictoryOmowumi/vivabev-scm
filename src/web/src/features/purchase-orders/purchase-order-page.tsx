@@ -14,6 +14,7 @@ import { fieldClass } from '@/lib/field-class'
 import { formatDate, formatDateTime, formatNaira } from '@/lib/format'
 import { can, Permission } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
+import { useReceipts } from '@/features/warehouse/warehouse-api'
 import { OrderStatusBadge } from './order-status-badge'
 import { useCancelOrder, useIssueOrder, usePurchaseOrder, useUpdateDelivery, type PurchaseOrderDetail } from './purchase-orders-api'
 
@@ -56,7 +57,7 @@ export function PurchaseOrderPage() {
             {po.issuedAt && ` · issued ${formatDateTime(po.issuedAt)}`}
           </p>
         </div>
-        {po.status === 'Issued' && (
+        {po.status !== 'Draft' && po.status !== 'Cancelled' && (
           <Button size="pill" variant="outline" onClick={() => window.print()}>
             <HugeiconsIcon icon={PrinterIcon} strokeWidth={1.5} /> Print or save as PDF
           </Button>
@@ -70,6 +71,7 @@ export function PurchaseOrderPage() {
       )}
 
       {manage && po.status === 'Draft' && <DraftActions po={po} />}
+      {(po.status === 'PartiallyReceived' || po.status === 'Received') && can(user, Permission.InventoryView) && <Receipts po={po} />}
 
       <OrderDocument po={po} />
     </div>
@@ -163,10 +165,11 @@ function DraftActions({ po }: { po: PurchaseOrderDetail }) {
 
 /** The order as the supplier sees it. This is the part that prints. */
 function OrderDocument({ po }: { po: PurchaseOrderDetail }) {
+  const receiving = po.status === 'PartiallyReceived' || po.status === 'Received'
   return (
     <article aria-label={`Purchase order ${po.number}`}
       className="flex flex-col gap-7 rounded-[28px] bg-surface p-8 shadow-sm print:rounded-none print:bg-white print:p-0 print:shadow-none print:text-black">
-      {po.status !== 'Issued' && (
+      {(po.status === 'Draft' || po.status === 'Cancelled') && (
         <p className="self-start rounded-full bg-draft px-3 py-1 text-xs font-bold text-draft-foreground">
           {po.status === 'Draft' ? 'Draft: not yet sent to the supplier' : 'Cancelled: not valid'}
         </p>
@@ -217,6 +220,7 @@ function OrderDocument({ po }: { po: PurchaseOrderDetail }) {
               <th scope="col" className="py-2 pr-3 font-semibold">#</th>
               <th scope="col" className="py-2 pr-3 font-semibold">Description</th>
               <th scope="col" className="py-2 pr-3 text-right font-semibold">Qty</th>
+              {receiving && <th scope="col" className="py-2 pr-3 text-right font-semibold print:hidden">Received</th>}
               <th scope="col" className="py-2 pr-3 text-right font-semibold">Unit price</th>
               <th scope="col" className="py-2 text-right font-semibold">Amount</th>
             </tr>
@@ -232,6 +236,11 @@ function OrderDocument({ po }: { po: PurchaseOrderDetail }) {
                   </div>
                 </td>
                 <td className="py-3 pr-3 text-right">{l.quantity} {l.uomCode}</td>
+                {receiving && (
+                  <td className={cn('py-3 pr-3 text-right print:hidden', l.quantityReceived >= l.quantity ? 'text-brand' : 'text-muted-foreground')}>
+                    {l.quantityReceived} {l.uomCode}
+                  </td>
+                )}
                 <td className="py-3 pr-3 text-right">{formatNaira(l.unitPrice)}</td>
                 <td className="py-3 text-right font-semibold">{formatNaira(l.lineTotal)}</td>
               </tr>
@@ -239,7 +248,7 @@ function OrderDocument({ po }: { po: PurchaseOrderDetail }) {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={4} className="pt-4 pr-3 text-right text-sm font-semibold">Total ({po.currencyCode})</td>
+              <td colSpan={receiving ? 5 : 4} className="pt-4 pr-3 text-right text-sm font-semibold">Total ({po.currencyCode})</td>
               <td className="pt-4 text-right font-heading text-2xl">{formatNaira(po.total)}</td>
             </tr>
           </tfoot>
@@ -275,5 +284,28 @@ function Term({ label, children }: { label: string; children: ReactNode }) {
       <dt className="text-muted-foreground print:text-neutral-600">{label}</dt>
       <dd className="font-semibold">{children}</dd>
     </>
+  )
+}
+
+/** Deliveries recorded against this order by the warehouse. */
+function Receipts({ po }: { po: PurchaseOrderDetail }) {
+  const receipts = useReceipts(po.id)
+  return (
+    <Panel className="flex flex-col gap-2 px-6 py-5 print:hidden">
+      <h2 className="text-xl font-normal">Goods received</h2>
+      {receipts.isPending && <Skeleton className="h-16 rounded-2xl" />}
+      <ul className="flex flex-col divide-y">
+        {receipts.data?.map((r) => (
+          <li key={r.id} className="flex flex-wrap items-center gap-3 py-2.5 text-sm">
+            <Link to={`/warehouse/receipts/${r.id}`} className="font-semibold hover:text-brand">{r.number}</Link>
+            <span className="min-w-0 flex-1 text-xs text-muted-foreground">
+              {formatDateTime(r.receivedAt)} · {r.receivedByName}{r.deliveryNoteNumber && ` · delivery note ${r.deliveryNoteNumber}`}
+            </span>
+            {r.hasRejections && <span className="rounded-full bg-over px-2.5 py-0.5 text-xs font-bold text-over-foreground">Some rejected</span>}
+            <span className="font-semibold">{formatNaira(r.acceptedValue)}</span>
+          </li>
+        ))}
+      </ul>
+    </Panel>
   )
 }

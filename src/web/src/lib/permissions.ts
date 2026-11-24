@@ -13,6 +13,12 @@ export const Permission = {
   SourcingManage: 'sourcing.manage',
   PurchaseOrdersView: 'purchase-orders.view',
   PurchaseOrdersManage: 'purchase-orders.manage',
+  InventoryView: 'inventory.view',
+  InventoryReceive: 'inventory.receive',
+  CatalogueManage: 'catalogue.manage',
+  SuppliersView: 'suppliers.view',
+  SuppliersManage: 'suppliers.manage',
+  SuppliersApprove: 'suppliers.approve',
 } as const
 
 /** Any budget access at all: Finance, the MD, or a department manager for their own department. */

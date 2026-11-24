@@ -90,7 +90,7 @@ export type SourcingEventDetail = {
   awardRejectionReason: string | null
   purchaseOrderId: string | null // the live order raised from the award
   purchaseOrderNumber: string | null
-  purchaseOrderStatus: 'Draft' | 'Issued' | null
+  purchaseOrderStatus: 'Draft' | 'Issued' | 'PartiallyReceived' | 'Received' | null
 }
 
 export type CriterionKind = 'Price' | 'Delivery' | 'PaymentTerms' | 'Manual'
