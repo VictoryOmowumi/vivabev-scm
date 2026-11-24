@@ -26,3 +26,15 @@ EF only bumps a row's RowVersion when that row changes. Recording a quotation in
 **Why it's fine today:** one buyer runs each RFQ, and the invitation row's status does change (Invited → Responded), which catches most races.
 
 **When to revisit:** if several buyers share RFQs. Add a filtered unique index on `quotations (sourcing_event_id, supplier_id) WHERE status = 'Received'`, or touch a `LastChangedAt` column on the event in every command so its RowVersion always moves.
+
+## Award approvals don't stop someone approving their own recommendation (Approvals)
+
+The award policy's first step is "any Procurement manager". If a Procurement manager runs an RFQ and recommends the award, the chain resolves that step to them. The same can happen to a department manager raising their own requisition.
+
+**When to revisit:** before real use. In `ApprovalService.StartAsync`, when a step resolves to the requester, escalate to the requester's manager (or the next person in the role).
+
+## Budget commitments stay at the requisition estimate after an award (Finance)
+
+Budgets commit the requisitions' estimated totals at approval. An award above the estimate adds a Finance controller step, but it doesn't change the committed amount.
+
+**When to revisit:** with purchase orders. The PO should re-commit the actual amount and release the difference.

@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 import { EventStatusBadge } from './event-status-badge'
 import { eventStatusLabels, useSourceableRequisitions, useSourcingEvents, type SourcingEventStatus } from './sourcing-api'
 
-const tabs: (SourcingEventStatus | 'all')[] = ['all', 'Draft', 'Published', 'ResponsesClosed', 'Cancelled']
+const tabs: (SourcingEventStatus | 'all')[] = ['all', 'Draft', 'Published', 'ResponsesClosed', 'AwardPending', 'Awarded', 'Cancelled']
 const columns = ['RFQ', 'Requisitions', 'Deadline', 'Suppliers', 'Estimated', 'Lowest quote', 'Status']
 
 export function SourcingPage() {

@@ -197,6 +197,89 @@ namespace VivaBev.Procurement.Infrastructure.Migrations
                     b.ToTable("requisition_lines", "procurement");
                 });
 
+            modelBuilder.Entity("VivaBev.Procurement.Domain.Sourcing.EvaluationCriterion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("SourcingEventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Weight")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourcingEventId", "SortOrder");
+
+                    b.ToTable("evaluation_criteria", "procurement");
+                });
+
+            modelBuilder.Entity("VivaBev.Procurement.Domain.Sourcing.EvaluationScore", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CriterionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("QuotationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Score")
+                        .HasPrecision(4, 2)
+                        .HasColumnType("decimal(4,2)");
+
+                    b.Property<Guid>("SourcingEventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourcingEventId");
+
+                    b.HasIndex("CriterionId", "QuotationId")
+                        .IsUnique();
+
+                    b.ToTable("evaluation_scores", "procurement");
+                });
+
             modelBuilder.Entity("VivaBev.Procurement.Domain.Sourcing.Quotation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -313,6 +396,23 @@ namespace VivaBev.Procurement.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AwardJustification")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid?>("AwardQuotationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("AwardRecommendedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("AwardRejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("AwardedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<Guid>("BuyerId")
                         .HasColumnType("uniqueidentifier");
@@ -499,6 +599,24 @@ namespace VivaBev.Procurement.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("VivaBev.Procurement.Domain.Sourcing.EvaluationCriterion", b =>
+                {
+                    b.HasOne("VivaBev.Procurement.Domain.Sourcing.SourcingEvent", null)
+                        .WithMany("Criteria")
+                        .HasForeignKey("SourcingEventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VivaBev.Procurement.Domain.Sourcing.EvaluationScore", b =>
+                {
+                    b.HasOne("VivaBev.Procurement.Domain.Sourcing.SourcingEvent", null)
+                        .WithMany("Scores")
+                        .HasForeignKey("SourcingEventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("VivaBev.Procurement.Domain.Sourcing.Quotation", b =>
                 {
                     b.HasOne("VivaBev.Procurement.Domain.Sourcing.SourcingEvent", null)
@@ -547,11 +665,15 @@ namespace VivaBev.Procurement.Infrastructure.Migrations
 
             modelBuilder.Entity("VivaBev.Procurement.Domain.Sourcing.SourcingEvent", b =>
                 {
+                    b.Navigation("Criteria");
+
                     b.Navigation("Invitations");
 
                     b.Navigation("Lines");
 
                     b.Navigation("Quotations");
+
+                    b.Navigation("Scores");
                 });
 #pragma warning restore 612, 618
         }

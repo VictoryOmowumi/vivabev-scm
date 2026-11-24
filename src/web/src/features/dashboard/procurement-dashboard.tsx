@@ -28,7 +28,7 @@ export function ProcurementDashboard({ user }: { user: CurrentUser }) {
   const of = (...s: SourcingEventStatus[]) => events.filter((e) => s.includes(e.status))
   const open = of(...onRfq)
   const published = of('Published')
-  const closed = of('ResponsesClosed')
+  const closed = of('ResponsesClosed', 'AwardPending') // being evaluated or awarded
   const dueThisWeek = published.filter((e) => { const d = daysFromToday(e.responseDeadline, today); return d >= 0 && d <= 7 })
 
   const stats: Stat[] = [
@@ -83,7 +83,7 @@ export function ProcurementDashboard({ user }: { user: CurrentUser }) {
           segments={[
             { label: 'Waiting for sourcing', amount: pipeline.waiting, tone: 'dark' },
             { label: 'On an RFQ', amount: pipeline.onRfq, tone: 'green' },
-            { label: 'Ready to evaluate', amount: pipeline.closed, tone: 'hatch' },
+            { label: 'Evaluating', amount: pipeline.closed, tone: 'hatch' },
           ]}
         />
       )}
@@ -124,7 +124,8 @@ export function ProcurementDashboard({ user }: { user: CurrentUser }) {
             <Bars highlight="Open" bars={[
               { label: 'Draft', count: of('Draft').length, to: '/sourcing?status=Draft', tone: 'dark' },
               { label: 'Open', count: published.length, to: '/sourcing?status=Published', tone: 'green' },
-              { label: 'Closed', count: closed.length, to: '/sourcing?status=ResponsesClosed', tone: 'dark' },
+              { label: 'Evaluating', count: of('ResponsesClosed').length, to: '/sourcing?status=ResponsesClosed', tone: 'dark' },
+              { label: 'Approval', count: of('AwardPending').length, to: '/sourcing?status=AwardPending', tone: 'dark' },
               { label: 'Awarded', count: of('Awarded').length, to: '/sourcing?status=Awarded', tone: 'dark' },
               { label: 'Cancelled', count: of('Cancelled').length, to: '/sourcing?status=Cancelled', tone: 'grey' },
             ]} />

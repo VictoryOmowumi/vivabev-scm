@@ -1,13 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
-import { requisitionKeys } from '@/features/requisitions/requisitions-api'
+import { requisitionKeys, type ApprovalStatus } from '@/features/requisitions/requisitions-api'
 
-export type SourcingEventStatus = 'Draft' | 'Published' | 'ResponsesClosed' | 'Awarded' | 'Cancelled'
+export type SourcingEventStatus = 'Draft' | 'Published' | 'ResponsesClosed' | 'AwardPending' | 'Awarded' | 'Cancelled'
 
 export const eventStatusLabels: Record<SourcingEventStatus, string> = {
   Draft: 'Draft',
   Published: 'Open for quotes',
-  ResponsesClosed: 'Responses closed',
+  ResponsesClosed: 'Evaluating',
+  AwardPending: 'Award pending',
   Awarded: 'Awarded',
   Cancelled: 'Cancelled',
 }
@@ -83,6 +84,45 @@ export type SourcingEventDetail = {
   lines: SourcingEventLine[]
   invitations: Invitation[]
   quotations: Quotation[]
+  criteria: EvaluationCriterion[]
+  evaluation: QuotationEvaluation[] // best first; only quotations that price every line
+  award: SourcingAward | null
+  awardRejectionReason: string | null
+}
+
+export type CriterionKind = 'Price' | 'Delivery' | 'PaymentTerms' | 'Manual'
+
+export const criterionKindLabels: Record<CriterionKind, string> = {
+  Price: 'Scored from price',
+  Delivery: 'Scored from lead time',
+  PaymentTerms: 'Scored from payment terms',
+  Manual: 'You score 0–10',
+}
+
+export type EvaluationCriterion = { id: string; name: string; kind: CriterionKind; weight: number }
+
+export type QuotationEvaluation = {
+  quotationId: string
+  supplierId: string
+  supplierName: string
+  total: number
+  leadTimeDays: number
+  paymentTermsDays: number
+  scores: { criterionId: string; score: number | null }[]
+  weightedTotal: number // out of 100
+  fullyScored: boolean
+  rank: number
+}
+
+export type SourcingAward = {
+  quotationId: string
+  supplierId: string
+  supplierName: string
+  amount: number
+  justification: string | null
+  recommendedAt: string
+  awardedAt: string | null
+  topScorer: boolean
 }
 
 export type SourceableRequisition = {
@@ -113,6 +153,7 @@ export const sourcingKeys = {
   detail: (id: string) => ['sourcing', 'event', id] as const,
   eligible: (id: string) => ['sourcing', 'eligible', id] as const,
   sourceable: ['sourcing', 'sourceable'] as const,
+  awardApproval: (id: string) => ['sourcing', 'award-approval', id] as const,
 }
 
 export const useSourcingEvents = () =>
@@ -198,3 +239,30 @@ export const useRecordQuotation = (id: string) =>
 export const useWithdrawQuotation = (id: string) =>
   useSourcingMutation(({ quotationId, reason }: { quotationId: string; reason: string }) =>
     api<void>(`${base(id)}/quotations/${quotationId}/withdraw`, { method: 'POST', body: { reason } }))
+
+// ---------- evaluation and award ----------
+
+export const useAwardApproval = (id: string, enabled: boolean) =>
+  useQuery({
+    queryKey: sourcingKeys.awardApproval(id),
+    // 204 when the award was never sent for approval
+    queryFn: async ({ signal }) => (await api<ApprovalStatus | undefined>(`${base(id)}/award-approval`, { signal })) ?? null,
+    enabled,
+  })
+
+export type CriterionInput = { id: string | null; name: string; kind: CriterionKind; weight: number }
+
+export const useSetCriteria = (id: string) =>
+  useSourcingMutation((criteria: CriterionInput[]) => api<void>(`${base(id)}/criteria`, { method: 'PUT', body: { criteria } }))
+
+export type ScoreInput = { criterionId: string; quotationId: string; score: number | null }
+
+export const useSetScores = (id: string) =>
+  useSourcingMutation((scores: ScoreInput[]) => api<void>(`${base(id)}/scores`, { method: 'PUT', body: { scores } }))
+
+export const useRecommendAward = (id: string) =>
+  useSourcingMutation((body: { quotationId: string; justification: string | null }) =>
+    api<void>(`${base(id)}/award`, { method: 'POST', body }))
+
+export const useWithdrawRecommendation = (id: string) =>
+  useSourcingMutation(() => api<void>(`${base(id)}/award/withdraw`, { method: 'POST' }))

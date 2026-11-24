@@ -80,7 +80,31 @@ public sealed record SourcingEventDetailDto(
     decimal CompetitiveThreshold,
     IReadOnlyList<SourcingEventLineDto> Lines,
     IReadOnlyList<SourcingInvitationDto> Invitations,
-    IReadOnlyList<QuotationDto> Quotations);
+    IReadOnlyList<QuotationDto> Quotations,
+    IReadOnlyList<EvaluationCriterionDto> Criteria,
+    IReadOnlyList<QuotationEvaluationDto> Evaluation, // best first; only quotations that price every line
+    SourcingAwardDto? Award,                          // the current recommendation or approved award
+    string? AwardRejectionReason);                    // why the last recommendation was rejected
+
+// ---------- evaluation and award ----------
+
+public sealed record EvaluationCriterionDto(Guid Id, string Name, string Kind, int Weight);
+
+public sealed record CriterionScoreDto(Guid CriterionId, decimal? Score); // null: a manual score not entered yet
+
+public sealed record QuotationEvaluationDto(
+    Guid QuotationId, Guid SupplierId, string SupplierName, decimal Total, int LeadTimeDays, int PaymentTermsDays,
+    IReadOnlyList<CriterionScoreDto> Scores, decimal WeightedTotal, bool FullyScored, int Rank);
+
+public sealed record SourcingAwardDto(
+    Guid QuotationId, Guid SupplierId, string SupplierName, decimal Amount, string? Justification,
+    DateTime RecommendedAt, DateTime? AwardedAt, bool TopScorer);
+
+public sealed record CriterionRequest(Guid? Id, string Name, string Kind, int Weight);
+public sealed record SetCriteriaRequest(IReadOnlyList<CriterionRequest> Criteria);
+public sealed record ScoreRequest(Guid CriterionId, Guid QuotationId, decimal? Score);
+public sealed record SetScoresRequest(IReadOnlyList<ScoreRequest> Scores);
+public sealed record RecommendAwardRequest(Guid QuotationId, string? Justification);
 
 /// <summary>An approved requisition waiting to be put on an RFQ.</summary>
 public sealed record SourceableRequisitionDto(

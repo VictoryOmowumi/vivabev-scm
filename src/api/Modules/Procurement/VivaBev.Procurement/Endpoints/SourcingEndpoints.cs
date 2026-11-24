@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using VivaBev.Approvals.Contracts;
 using VivaBev.Identity.Contracts;
 using VivaBev.Procurement.Application;
 using VivaBev.Procurement.Contracts;
@@ -57,12 +58,7 @@ internal static class SourcingEndpoints
         group.MapGet("/events/{id:guid}", async (Guid id, ProcurementDbContext db, IUserDirectory users,
             ISupplierQueries suppliers, CancellationToken ct) =>
         {
-            var e = await db.SourcingEvents.AsNoTracking()
-                .Include(x => x.Lines)
-                .Include(x => x.Invitations)
-                .Include(x => x.Quotations).ThenInclude(q => q.Lines)
-                .AsSplitQuery()
-                .SingleOrDefaultAsync(x => x.Id == id, ct);
+            var e = await db.SourcingEvents.AsNoTracking().WithEverything().SingleOrDefaultAsync(x => x.Id == id, ct);
 
             if (e is null)
                 return Results.NotFound();
@@ -71,6 +67,7 @@ internal static class SourcingEndpoints
             var names = await suppliers.GetNamesAsync(
                 e.Invitations.Select(i => i.SupplierId).Concat(e.Quotations.Select(q => q.SupplierId)).ToList(), ct);
             string Name(Guid supplierId) => names.GetValueOrDefault(supplierId) ?? "(unknown supplier)";
+            var evaluation = e.Evaluate();
 
             return Results.Ok(new SourcingEventDetailDto(
                 e.Id, e.Number, e.Title, e.Status.ToString(), e.BuyerId, buyer?.DisplayName ?? "(unknown user)",
@@ -90,7 +87,31 @@ internal static class SourcingEndpoints
                         q.WithdrawalReason,
                         q.Lines.Select(l => new QuotationLineDto(l.SourcingEventLineId, l.UnitPrice, l.Quantity,
                             l.LineTotal, l.Notes)).ToList()))
-                    .ToList()));
+                    .ToList(),
+                e.Criteria.OrderBy(c => c.SortOrder)
+                    .Select(c => new EvaluationCriterionDto(c.Id, c.Name, c.Kind.ToString(), c.Weight))
+                    .ToList(),
+                evaluation.Select(v =>
+                {
+                    var q = e.Quotations.Single(x => x.Id == v.QuotationId);
+                    return new QuotationEvaluationDto(v.QuotationId, v.SupplierId, Name(v.SupplierId), v.Total,
+                        q.LeadTimeDays, q.PaymentTermsDays,
+                        e.Criteria.OrderBy(c => c.SortOrder).Select(c => new CriterionScoreDto(c.Id, v.Scores[c.Id])).ToList(),
+                        v.WeightedTotal, v.FullyScored, v.Rank);
+                }).ToList(),
+                e.AwardQuotation is { } award
+                    ? new SourcingAwardDto(award.Id, award.SupplierId, Name(award.SupplierId), award.Total,
+                        e.AwardJustification, e.AwardRecommendedAt!.Value, e.AwardedAt,
+                        evaluation.FirstOrDefault(v => v.QuotationId == award.Id)?.Rank == 1)
+                    : null,
+                e.AwardRejectionReason));
+        });
+
+        // The award's approval chain, like a requisition's
+        group.MapGet("/events/{id:guid}/award-approval", async (Guid id, IApprovals approvals, CancellationToken ct) =>
+        {
+            var approval = await approvals.GetLatestAsync(SourcingEvent.AwardDocumentType, id, ct);
+            return approval is null ? Results.NoContent() : Results.Ok(approval);
         });
 
         // Approved requisitions not yet on an RFQ
@@ -210,6 +231,33 @@ internal static class SourcingEndpoints
         manage.MapPost("/{id:guid}/close", async (Guid id, SourcingService service, CancellationToken ct) =>
         {
             await service.CloseResponsesAsync(id, ct);
+            return Results.NoContent();
+        });
+
+        manage.MapPut("/{id:guid}/criteria", async (Guid id, SetCriteriaRequest request,
+            SourcingService service, CancellationToken ct) =>
+        {
+            await service.SetCriteriaAsync(id, request, ct);
+            return Results.NoContent();
+        });
+
+        manage.MapPut("/{id:guid}/scores", async (Guid id, SetScoresRequest request,
+            SourcingService service, CancellationToken ct) =>
+        {
+            await service.SetScoresAsync(id, request, ct);
+            return Results.NoContent();
+        });
+
+        manage.MapPost("/{id:guid}/award", async (Guid id, RecommendAwardRequest request,
+            SourcingService service, CancellationToken ct) =>
+        {
+            await service.RecommendAwardAsync(id, request, ct);
+            return Results.NoContent();
+        });
+
+        manage.MapPost("/{id:guid}/award/withdraw", async (Guid id, SourcingService service, CancellationToken ct) =>
+        {
+            await service.WithdrawRecommendationAsync(id, ct);
             return Results.NoContent();
         });
 

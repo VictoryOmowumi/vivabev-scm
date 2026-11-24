@@ -5,6 +5,7 @@ const styles: Record<SourcingEventStatus, string> = {
   Draft: 'bg-draft text-draft-foreground',
   Published: 'bg-[#dde7f3] text-[#1f3d5c] dark:bg-[#6aa0d8]/20 dark:text-[#a9cdeb]',
   ResponsesClosed: 'bg-pending text-pending-foreground',
+  AwardPending: 'bg-over text-over-foreground',
   Awarded: 'bg-success text-success-foreground',
   Cancelled: 'bg-cancelled text-cancelled-foreground',
 }

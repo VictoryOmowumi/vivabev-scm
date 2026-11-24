@@ -19,6 +19,7 @@ public static class ProcurementModule
         services.AddScoped<SourcingService>();
         services.AddScoped<IRequisitionQueries, RequisitionQueries>();
         services.AddScoped<IApprovalOutcomeHandler, RequisitionApprovalHandler>();
+        services.AddScoped<IApprovalOutcomeHandler, SourcingAwardApprovalHandler>();
         return services;
     }
 

@@ -13,7 +13,9 @@ import { fieldClass } from '@/lib/field-class'
 import { formatDate, formatDateTime, formatNaira } from '@/lib/format'
 import { can, Permission } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
+import { AwardStatus } from './award-status'
 import { EventStatusBadge } from './event-status-badge'
+import { Evaluation } from './evaluation'
 import { QuoteComparison } from './quote-comparison'
 import { RecordQuotation } from './record-quotation'
 import { RfqSuppliers } from './rfq-suppliers'
@@ -84,6 +86,7 @@ function Workspace({ rfq, manage }: { rfq: SourcingEventDetail; manage: boolean 
       )}
 
       {manage && <NextStep rfq={rfq} quoted={live.length} />}
+      <AwardStatus rfq={rfq} manage={manage} />
 
       <section className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[2_1_620px] flex-col gap-5">
@@ -94,6 +97,7 @@ function Workspace({ rfq, manage }: { rfq: SourcingEventDetail; manage: boolean 
 
       {/* Full width: one column per supplier needs the room */}
       {rfq.status !== 'Draft' && <QuoteComparison rfq={rfq} manage={manage} />}
+      {['ResponsesClosed', 'AwardPending', 'Awarded'].includes(rfq.status) && <Evaluation rfq={rfq} manage={manage} />}
       {manage && rfq.status === 'Published' && <RecordQuotation rfq={rfq} />}
     </div>
   )
@@ -117,7 +121,7 @@ function NextStep({ rfq, quoted }: { rfq: SourcingEventDetail; quoted: number })
     try { await action(); toast(message) } catch { /* shown below */ }
   }
 
-  if (rfq.status === 'Cancelled' || rfq.status === 'Awarded') return null
+  if (rfq.status === 'Cancelled' || rfq.status === 'Awarded' || rfq.status === 'AwardPending') return null
 
   return (
     <Panel className="flex flex-col gap-4 px-6 py-5">
@@ -140,8 +144,8 @@ function NextStep({ rfq, quoted }: { rfq: SourcingEventDetail; quoted: number })
           )}
           {rfq.status === 'ResponsesClosed' && (
             <>
-              <h2 className="text-xl font-normal">Ready for evaluation</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Scoring and the award recommendation come in the next release step.</p>
+              <h2 className="text-xl font-normal">Score the quotations, then recommend a supplier</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Adjust the criteria if you need to, enter your scores below, and send your choice for approval.</p>
             </>
           )}
         </div>

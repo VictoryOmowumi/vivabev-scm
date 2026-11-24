@@ -4,8 +4,9 @@ public enum SourcingEventStatus
 {
     Draft,           // the buyer is choosing lines and suppliers
     Published,       // suppliers have been invited; quotations are coming in
-    ResponsesClosed, // no more quotations; ready for evaluation
-    Awarded,         // a supplier was chosen and the award approved (next release step)
+    ResponsesClosed, // no more quotations; the buyer scores them
+    AwardPending,    // the buyer recommended a supplier; the award is going through approvals
+    Awarded,         // the award was approved
     Cancelled
 }
 

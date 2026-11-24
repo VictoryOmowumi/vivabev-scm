@@ -69,6 +69,7 @@ export function useDecide() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: approvalKeys.all }),
         queryClient.invalidateQueries({ queryKey: requisitionKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ['sourcing'] }), // an award decision moves an RFQ
       ]),
   })
 }
