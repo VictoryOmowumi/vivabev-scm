@@ -9,6 +9,9 @@ export type CurrentUser = {
   siteCode: string
   roles: string[]
   permissions: string[]
+  jobTitle: string | null
+  departmentName: string
+  siteName: string // "Head Office, Lagos"
 }
 
 export type LoginRequest = { email: string; password: string; rememberMe: boolean }

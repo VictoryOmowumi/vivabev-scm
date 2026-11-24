@@ -9,4 +9,7 @@ public sealed record CurrentUserDto(
     string DepartmentCode,
     string SiteCode,
     IReadOnlyList<string> Roles,
-    IReadOnlyList<string> Permissions);
+    IReadOnlyList<string> Permissions,
+    string? JobTitle,
+    string DepartmentName,
+    string SiteName);   // "Head Office, Lagos"
