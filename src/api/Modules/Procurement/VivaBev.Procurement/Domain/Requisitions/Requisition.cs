@@ -132,10 +132,28 @@ public sealed class Requisition : AggregateRoot
             throw new DomainException($"Cannot {action} a requisition that is {Status}.");
     }
 
+    /// <summary>Procurement has put it on an RFQ.</summary>
+    public void MarkInSourcing()
+    {
+        if (Status != RequisitionStatus.Approved)
+            throw new DomainException($"Only an approved requisition can be sourced; {Number} is {Status}.");
+        Status = RequisitionStatus.InSourcing;
+    }
+
+    /// <summary>Taken off an RFQ, or the RFQ was cancelled: it waits for sourcing again.</summary>
+    public void ReturnFromSourcing()
+    {
+        if (Status != RequisitionStatus.InSourcing)
+            throw new DomainException($"{Number} is not in sourcing.");
+        Status = RequisitionStatus.Approved;
+    }
+
     public void Cancel(string reason)
     {
         if (Status == RequisitionStatus.Cancelled)
             throw new DomainException("This requisition is already cancelled.");
+        if (Status == RequisitionStatus.InSourcing)
+            throw new DomainException("This requisition is on an RFQ. Ask Procurement to take it off first.");
 
         CancellationReason = Guard.Required(reason, nameof(reason), 500);
         Status = RequisitionStatus.Cancelled;

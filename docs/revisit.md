@@ -18,3 +18,11 @@ The list returns the newest 200 requisitions for the chosen scope; the browser f
 
 **When to revisit:** when the "All" tab gets slow or someone can't find an older requisition. Move status,
 search and paging to the API (`?status=&q=&page=`) and keep the URL parameters the page already uses.
+
+## Adding a quotation or invitation doesn't bump the RFQ's RowVersion (Procurement)
+
+EF only bumps a row's RowVersion when that row changes. Recording a quotation inserts child rows and may leave the `sourcing_events` row untouched. Two buyers recording quotes for the same supplier at the same moment could therefore both pass the "one live quotation per supplier" check.
+
+**Why it's fine today:** one buyer runs each RFQ, and the invitation row's status does change (Invited → Responded), which catches most races.
+
+**When to revisit:** if several buyers share RFQs. Add a filtered unique index on `quotations (sourcing_event_id, supplier_id) WHERE status = 'Received'`, or touch a `LastChangedAt` column on the event in every command so its RowVersion always moves.

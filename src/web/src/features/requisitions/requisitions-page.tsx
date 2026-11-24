@@ -19,7 +19,7 @@ import {
 } from './requisitions-api'
 import { BudgetBadge, StatusBadge } from './status-badges'
 
-const statuses: RequisitionStatus[] = ['Draft', 'PendingApproval', 'Approved', 'Cancelled']
+const statuses: RequisitionStatus[] = ['Draft', 'PendingApproval', 'Approved', 'InSourcing', 'Cancelled']
 const columns = ['Requisition', 'Requester', 'Cost centre', 'Status', 'Budget', 'Estimated total', 'Required by']
 
 export function RequisitionsPage() {

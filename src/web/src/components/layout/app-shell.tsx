@@ -8,7 +8,7 @@ export function AppShell() {
   if (!user) return null
 
   return (
-    <div className="mx-auto flex container flex-col gap-7 px-4 pt-6 pb-12 sm:px-6 lg:px-10">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-7 px-[clamp(16px,3vw,40px)] pt-6 pb-12">
       <AppHeader user={user} />
       <main>
         <Outlet />

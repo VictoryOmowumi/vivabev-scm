@@ -7,6 +7,7 @@ const statusStyles: Record<RequisitionStatus, string> = {
   Draft: 'bg-draft text-draft-foreground',
   PendingApproval: 'bg-pending text-pending-foreground',
   Approved: 'bg-success text-success-foreground',
+  InSourcing: 'bg-[#dde7f3] text-[#1f3d5c] dark:bg-[#6aa0d8]/20 dark:text-[#a9cdeb]',
   Cancelled: 'bg-cancelled text-cancelled-foreground',
 }
 

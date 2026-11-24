@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { DecisionPanel } from '@/features/approvals/decision-panel'
 import { useCurrentUser } from '@/features/auth/use-auth'
 import { formatDate, formatDateTime, formatNaira } from '@/lib/format'
+import { can, Permission } from '@/lib/permissions'
 import { ApprovalChain } from './approval-chain'
 import { BudgetCheck } from './budget-check'
 import { CancelRequisition } from './cancel-requisition'
@@ -67,7 +68,7 @@ export function RequisitionDetailPage() {
         </div>
       </section>
 
-      {mine && r.status !== 'Cancelled' && (
+      {mine && r.status !== 'Cancelled' && r.status !== 'InSourcing' && (
         <section aria-label="Your actions" className="flex flex-wrap items-center justify-end gap-2">
           {r.status === 'Draft' && (
             <Button asChild size="pill-sm">
@@ -83,6 +84,15 @@ export function RequisitionDetailPage() {
       {r.status === 'Draft' && r.rejectionReason && (
         <div role="status" className="rounded-2xl bg-over px-5 py-4 text-sm text-over-foreground">
           <strong>Returned{rejectedBy ? ` by ${rejectedBy.approverName}` : ''}:</strong> {r.rejectionReason}
+        </div>
+      )}
+      {r.sourcingEventNumber && r.status === 'InSourcing' && (
+        <div role="status" className="rounded-2xl bg-[#dde7f3] px-5 py-4 text-sm text-[#1f3d5c] dark:bg-[#6aa0d8]/20 dark:text-[#a9cdeb]">
+          <strong>Procurement is collecting quotations</strong> on{' '}
+          {can(user, Permission.SourcingView)
+            ? <Link to={`/sourcing/${r.sourcingEventId}`} className="font-semibold underline">{r.sourcingEventNumber}</Link>
+            : r.sourcingEventNumber}
+          . You can't cancel it while it's on the RFQ.
         </div>
       )}
       {r.status === 'Cancelled' && r.cancellationReason && (

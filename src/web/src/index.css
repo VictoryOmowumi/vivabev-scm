@@ -53,6 +53,12 @@
   --color-cancelled-foreground: var(--cancelled-foreground);
   --color-over: var(--over);
   --color-over-foreground: var(--over-foreground);
+  --color-green: var(--green);
+  --color-green-foreground: var(--green-foreground);
+  --color-inverse-chip: var(--inverse-chip);
+  --color-grey-bar: var(--grey-bar);
+  --color-hatch: var(--hatch);
+  --color-hatch-border: var(--hatch-border);
 
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 4px);
@@ -107,6 +113,12 @@
   --cancelled-foreground: #5e3128;
   --over: #f8d9c2;
   --over-foreground: #5a2a08;
+  --green: #7cc07a;
+  --green-foreground: #12301a;
+  --inverse-chip: #3e453f;
+  --grey-bar: #b9c3b5;
+  --hatch: rgb(47 122 53 / 0.3);
+  --hatch-border: rgb(47 122 53 / 0.35);
 }
 
 /* ---- Dark ---- */
@@ -154,6 +166,17 @@
   --cancelled-foreground: #ebb5a8;
   --over: rgb(240 140 70 / 0.18);
   --over-foreground: #f6bc90;
+  --green: #5fae5d;
+  --green-foreground: #0b230f;
+  --inverse-chip: #c2d2ba;
+  --grey-bar: #4a5449;
+  --hatch: rgb(124 192 122 / 0.32);
+  --hatch-border: rgb(124 192 122 / 0.4);
+}
+
+@utility hatch {
+  background-image: repeating-linear-gradient(135deg, var(--hatch) 0 2px, transparent 2px 9px);
+  border: 1px solid var(--hatch-border);
 }
 
 @layer base {

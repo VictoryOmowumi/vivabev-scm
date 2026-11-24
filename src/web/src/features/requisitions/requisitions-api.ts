@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api-client'
 
-export type RequisitionStatus = 'Draft' | 'PendingApproval' | 'Approved' | 'Cancelled'
+export type RequisitionStatus = 'Draft' | 'PendingApproval' | 'Approved' | 'InSourcing' | 'Cancelled'
 export type BudgetStatus = 'NotChecked' | 'WithinBudget' | 'OverBudget'
 export type RequisitionScope = 'mine' | 'department' | 'all'
 
@@ -9,6 +9,7 @@ export const statusLabels: Record<RequisitionStatus, string> = {
   Draft: 'Draft',
   PendingApproval: 'Pending approval',
   Approved: 'Approved',
+  InSourcing: 'In sourcing',
   Cancelled: 'Cancelled',
 }
 
@@ -66,6 +67,8 @@ export type RequisitionDetail = {
   lines: RequisitionLine[]
   costCentreId: string
   deliverToSiteId: string
+  sourcingEventId: string | null
+  sourcingEventNumber: string | null
 }
 
 // Mirrors ApprovalStatusDto / ApprovalStepDto in VivaBev.Approvals

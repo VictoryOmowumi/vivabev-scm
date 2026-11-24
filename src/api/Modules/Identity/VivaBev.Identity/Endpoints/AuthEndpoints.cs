@@ -51,16 +51,17 @@ internal static class AuthEndpoints
             if (user is null)
                 return Results.Unauthorized();
 
-            var departmentCode = await db.Departments.Where(d => d.Id == user.DepartmentId)
-                .Select(d => d.Code).SingleAsync(ct);
-            var siteCode = await db.Sites.Where(s => s.Id == user.SiteId)
-                .Select(s => s.Code).SingleAsync(ct);
+            var department = await db.Departments.Where(d => d.Id == user.DepartmentId)
+                .Select(d => new { d.Code, d.Name }).SingleAsync(ct);
+            var site = await db.Sites.Where(s => s.Id == user.SiteId)
+                .Select(s => new { s.Code, s.Name, s.City }).SingleAsync(ct);
             var roles = await users.GetRolesAsync(user);
             var permissions = principal.FindAll(Permissions.ClaimType)
                 .Select(c => c.Value).Distinct().Order().ToList();
 
             return Results.Ok(new CurrentUserDto(user.Id, user.Email!, user.DisplayName,
-                departmentCode, siteCode, roles.Order().ToList(), permissions));
+                department.Code, site.Code, roles.Order().ToList(), permissions,
+                user.JobTitle, department.Name, $"{site.Name}, {site.City}"));
         }).RequireAuthorization();
     }
 }

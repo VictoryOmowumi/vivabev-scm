@@ -9,6 +9,7 @@ using VivaBev.Identity.Contracts;
 using VivaBev.Procurement.Application;
 using VivaBev.Procurement.Contracts;
 using VivaBev.Procurement.Domain.Requisitions;
+using VivaBev.Procurement.Domain.Sourcing;
 using VivaBev.Procurement.Infrastructure;
 using VivaBev.SharedKernel.Abstractions;
 using VivaBev.SharedKernel.Security;
@@ -86,6 +87,13 @@ internal static class RequisitionEndpoints
             var costCentre = await organisation.GetCostCentreAsync(r.CostCentreId, ct);
             var site = await organisation.GetSiteAsync(r.DeliverToSiteId, ct);
 
+            // The live RFQ it's on, if any
+            var sourcing = await db.SourcingEvents.AsNoTracking()
+                .Where(e => e.Status != SourcingEventStatus.Cancelled && e.Lines.Any(l => l.RequisitionId == r.Id))
+                .OrderByDescending(e => e.Number)
+                .Select(e => new { e.Id, e.Number })
+                .FirstOrDefaultAsync(ct);
+
             return Results.Ok(new RequisitionDetailDto(
                 r.Id, r.Number, r.Title, r.Justification, r.Status.ToString(),
                 r.RequesterId, requester?.DisplayName ?? "(unknown user)",
@@ -98,7 +106,7 @@ internal static class RequisitionEndpoints
                         l.LineNo, l.LineType.ToString(), l.ItemId, l.ItemCode, l.Description, l.CategoryId,
                         l.Quantity, l.UomCode, l.EstimatedUnitPrice, l.LineTotal))
                     .ToList(),
-                r.CostCentreId, r.DeliverToSiteId));
+                r.CostCentreId, r.DeliverToSiteId, sourcing?.Id, sourcing?.Number));
         });
 
         // The approval chain, for anyone who may see the requisition (204 if it was never submitted)

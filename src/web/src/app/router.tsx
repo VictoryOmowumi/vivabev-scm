@@ -10,6 +10,9 @@ import { DashboardPage } from '@/features/dashboard/dashboard-page'
 import { RequisitionDetailPage } from '@/features/requisitions/requisition-detail-page'
 import { RequisitionEditorPage } from '@/features/requisitions/requisition-editor-page'
 import { RequisitionsPage } from '@/features/requisitions/requisitions-page'
+import { NewRfqPage } from '@/features/sourcing/new-rfq-page'
+import { RfqPage } from '@/features/sourcing/rfq-page'
+import { SourcingPage } from '@/features/sourcing/sourcing-page'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -29,6 +32,9 @@ export const router = createBrowserRouter([
           { path: 'catalogue', element: <ComingSoonPage title="Catalogue" /> },
           { path: 'budgets', element: <BudgetsPage /> },
           { path: 'budgets/:id', element: <BudgetDetailPage /> },
+          { path: 'sourcing', element: <SourcingPage /> },
+          { path: 'sourcing/new', element: <NewRfqPage /> },
+          { path: 'sourcing/:id', element: <RfqPage /> },
           { path: 'copilot', element: <ComingSoonPage title="Copilot" /> },
           { path: '*', element: <ComingSoonPage title="Page not found" /> },
         ],
