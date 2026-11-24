@@ -62,7 +62,9 @@ public sealed record RequisitionDetailDto(
     decimal? BudgetAvailableAtSubmit,
     IReadOnlyList<RequisitionLineDto> Lines,
     Guid CostCentreId,
-    Guid DeliverToSiteId);
+    Guid DeliverToSiteId,
+    Guid? SourcingEventId,          // the RFQ it's on, when Procurement is sourcing it
+    string? SourcingEventNumber);
 
 /// <summary>A cost centre the requester may charge, with where its budget stands right now.</summary>
 public sealed record CostCentreOptionDto(

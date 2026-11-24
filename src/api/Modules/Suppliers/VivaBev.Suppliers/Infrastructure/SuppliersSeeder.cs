@@ -9,9 +9,8 @@ internal static class SuppliersSeeder
     public static async Task SeedAsync(SuppliersDbContext db, ICatalogueQueries catalogue, TimeProvider clock,
         CancellationToken ct = default)
     {
-        if (await db.Suppliers.AnyAsync(ct))
-            return;
-
+        // Adds whichever demo suppliers are missing (by code), so new ones reach existing databases too
+        var existing = (await db.Suppliers.AsNoTracking().Select(s => s.Code).ToListAsync(ct)).ToHashSet();
         var now = clock.GetUtcNow().UtcDateTime;
 
         async Task<Guid> CategoryId(string code) =>
@@ -67,7 +66,32 @@ internal static class SuppliersSeeder
         creative.SubmitForApproval();
         creative.Approve(null, now);
 
-        db.Suppliers.AddRange(pet, closures, sugar, gases, computers, training, creative);
+        // Three approved IT suppliers, so an IT RFQ over ₦2,000,000 can meet the three-quote rule
+        var sterling = Create("SUP-0008", "Sterling Data Systems Ltd", "TIN-10000008",
+            "Bola Adewale", "bola@sterlingdata.example", "Ikeja", "Lagos");
+        sterling.RequestCategory(await CategoryId("IT"));
+        sterling.SubmitForApproval();
+        sterling.Approve(null, now);
+
+        var ekoPower = Create("SUP-0009", "Eko Power Solutions Ltd", "TIN-10000009",
+            "Ifeanyi Obi", "ifeanyi@ekopower.example", "Yaba", "Lagos", terms: 45);
+        ekoPower.RequestCategory(await CategoryId("IT"));
+        ekoPower.SubmitForApproval();
+        ekoPower.Approve(null, now);
+
+        var lekkiNet = Create("SUP-0010", "Lekki Networks Ltd", "TIN-10000010",
+            "Halima Sani", "halima@lekkinetworks.example", "Lekki", "Lagos");
+        lekkiNet.RequestCategory(await CategoryId("IT"));
+        lekkiNet.SubmitForApproval();
+        lekkiNet.Approve(null, now);
+
+        var missing = new[] { pet, closures, sugar, gases, computers, training, creative, sterling, ekoPower, lekkiNet }
+            .Where(s => !existing.Contains(s.Code))
+            .ToList();
+        if (missing.Count == 0)
+            return;
+
+        db.Suppliers.AddRange(missing);
         await db.SaveChangesAsync(ct);
     }
 }

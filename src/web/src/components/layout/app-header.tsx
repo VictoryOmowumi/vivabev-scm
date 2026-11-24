@@ -2,7 +2,7 @@ import { Link, NavLink } from 'react-router'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { DropletIcon, SparklesIcon } from '@hugeicons/core-free-icons'
 import type { CurrentUser } from '@/features/auth/auth-api'
-import { canSeeBudgets } from '@/lib/permissions'
+import { can, canSeeBudgets, Permission } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from './theme-toggle'
 import { UserMenu } from './user-menu'
@@ -12,6 +12,7 @@ const navItems: { to: string; label: string; visible?: (user: CurrentUser) => bo
   { to: '/', label: 'Dashboard' },
   { to: '/requisitions', label: 'Requisitions' },
   { to: '/approvals', label: 'Approvals' },
+  { to: '/sourcing', label: 'Sourcing', visible: (u) => can(u, Permission.SourcingView) },
   { to: '/suppliers', label: 'Suppliers' },
   { to: '/catalogue', label: 'Catalogue' },
   { to: '/budgets', label: 'Budgets', visible: canSeeBudgets },

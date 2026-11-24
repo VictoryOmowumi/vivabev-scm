@@ -9,6 +9,8 @@ export const Permission = {
   BudgetsView: 'finance.budgets.view',
   BudgetsViewDepartment: 'finance.budgets.view-department',
   BudgetsManage: 'finance.budgets.manage',
+  SourcingView: 'sourcing.view',
+  SourcingManage: 'sourcing.manage',
 } as const
 
 /** Any budget access at all: Finance, the MD, or a department manager for their own department. */
