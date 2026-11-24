@@ -44,4 +44,23 @@ internal sealed class SupplierQueries(SuppliersDbContext db) : ISupplierQueries
             .Where(s => ids.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, s => s.TradingName ?? s.LegalName, ct);
     }
+
+    public async Task<SupplierPartyDto?> GetPartyAsync(Guid supplierId, CancellationToken ct = default)
+    {
+        var s = await db.Suppliers.AsNoTracking()
+            .Include(x => x.Addresses)
+            .Include(x => x.Contacts)
+            .AsSplitQuery()
+            .SingleOrDefaultAsync(x => x.Id == supplierId, ct);
+        if (s is null)
+            return null;
+
+        var address = s.Addresses.OrderBy(a => a.AddressType == AddressType.Billing ? 0 : 1).FirstOrDefault();
+        var contact = s.Contacts.OrderByDescending(c => c.IsPrimary).FirstOrDefault();
+
+        return new SupplierPartyDto(s.Id, s.Code, s.TradingName ?? s.LegalName, s.LegalName, s.TaxId,
+            address is null ? null : string.Join(", ", new[] { address.Line1, address.Line2, address.City, address.State }
+                .Where(x => !string.IsNullOrWhiteSpace(x))),
+            contact?.Name, contact?.Email, contact?.Phone);
+    }
 }

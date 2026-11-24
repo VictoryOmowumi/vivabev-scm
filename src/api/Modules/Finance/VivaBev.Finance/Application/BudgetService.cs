@@ -40,15 +40,18 @@ internal sealed class BudgetService(FinanceDbContext db, IOrganisationQueries or
 
     public async Task ReleaseAsync(string documentType, Guid documentId, CancellationToken ct = default)
     {
-        var budget = await db.Budgets
+        // A purchase order can hold commitments in several budgets (one per cost centre), so release them all
+        var budgets = await db.Budgets
             .Include(b => b.Commitments)
-            .SingleOrDefaultAsync(b => b.Commitments.Any(c =>
-                c.DocumentType == documentType && c.DocumentId == documentId && c.Status == CommitmentStatus.Open), ct);
+            .Where(b => b.Commitments.Any(c =>
+                c.DocumentType == documentType && c.DocumentId == documentId && c.Status == CommitmentStatus.Open))
+            .ToListAsync(ct);
 
-        if (budget is null)
+        if (budgets.Count == 0)
             return;
 
-        budget.Release(documentType, documentId, Now);
+        foreach (var budget in budgets)
+            budget.Release(documentType, documentId, Now);
         await db.SaveChangesAsync(ct);
     }
 

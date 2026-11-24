@@ -8,8 +8,8 @@ export function AppShell() {
   if (!user) return null
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-7 px-[clamp(16px,3vw,40px)] pt-6 pb-12">
-      <AppHeader user={user} />
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-7 px-[clamp(16px,3vw,40px)] pt-6 pb-12 print:max-w-none print:p-0">
+      <div className="print:hidden"><AppHeader user={user} /></div>
       <main>
         <Outlet />
       </main>

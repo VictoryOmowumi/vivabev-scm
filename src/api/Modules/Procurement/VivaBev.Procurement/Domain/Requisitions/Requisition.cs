@@ -148,12 +148,22 @@ public sealed class Requisition : AggregateRoot
         Status = RequisitionStatus.Approved;
     }
 
+    /// <summary>Its awarded lines went out on an issued purchase order.</summary>
+    public void MarkOrdered()
+    {
+        if (Status != RequisitionStatus.InSourcing)
+            throw new DomainException($"Only a requisition in sourcing can be ordered; {Number} is {Status}.");
+        Status = RequisitionStatus.Ordered;
+    }
+
     public void Cancel(string reason)
     {
         if (Status == RequisitionStatus.Cancelled)
             throw new DomainException("This requisition is already cancelled.");
         if (Status == RequisitionStatus.InSourcing)
             throw new DomainException("This requisition is on an RFQ. Ask Procurement to take it off first.");
+        if (Status == RequisitionStatus.Ordered)
+            throw new DomainException("This requisition is on a purchase order and can't be cancelled here.");
 
         CancellationReason = Guard.Required(reason, nameof(reason), 500);
         Status = RequisitionStatus.Cancelled;

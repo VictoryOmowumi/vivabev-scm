@@ -1,10 +1,13 @@
+import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { useCurrentUser } from '@/features/auth/use-auth'
+import { useCreateOrder } from '@/features/purchase-orders/purchase-orders-api'
 import { ApprovalChain } from '@/features/requisitions/approval-chain'
 import { problemMessage } from '@/lib/api-client'
 import { formatDateTime, formatNaira } from '@/lib/format'
+import { can, Permission } from '@/lib/permissions'
 import { useAwardApproval, useWithdrawRecommendation, type SourcingEventDetail } from './sourcing-api'
 
 /** Where the award stands: pending (with its approval chain), awarded, or last rejected. */
@@ -13,6 +16,8 @@ export function AwardStatus({ rfq, manage }: { rfq: SourcingEventDetail; manage:
   const showChain = rfq.status === 'AwardPending' || rfq.status === 'Awarded'
   const approval = useAwardApproval(rfq.id, showChain)
   const withdraw = useWithdrawRecommendation(rfq.id)
+  const createOrder = useCreateOrder()
+  const navigate = useNavigate()
   const award = rfq.award
 
   if (rfq.status === 'ResponsesClosed' && rfq.awardRejectionReason) {
@@ -43,8 +48,27 @@ export function AwardStatus({ rfq, manage }: { rfq: SourcingEventDetail; manage:
           </span>
         </div>
         {award.justification && <p className="rounded-2xl bg-inverse-row px-4 py-3 text-sm">“{award.justification}”</p>}
-        {rfq.status === 'Awarded' && (
-          <p className="text-sm text-inverse-muted">Next: the purchase order to {award.supplierName}. That arrives in the next release step.</p>
+        {rfq.status === 'Awarded' && rfq.purchaseOrderId && (
+          <p className="text-sm">
+            Purchase order{' '}
+            <Link to={`/purchase-orders/${rfq.purchaseOrderId}`} className="font-semibold text-inverse-foreground underline hover:text-inverse-foreground">
+              {rfq.purchaseOrderNumber}
+            </Link>{' '}
+            · {rfq.purchaseOrderStatus === 'Issued' ? 'issued to the supplier' : 'draft, not yet issued'}
+          </p>
+        )}
+        {rfq.status === 'Awarded' && !rfq.purchaseOrderId && (
+          can(user, Permission.PurchaseOrdersManage) ? (
+            <div className="mt-auto flex flex-wrap items-center gap-3">
+              <Button size="pill" variant="brand" disabled={createOrder.isPending}
+                onClick={() => createOrder.mutate(rfq.id, {
+                  onSuccess: (po) => { toast(`${po.number} raised as a draft`); navigate(`/purchase-orders/${po.id}`) },
+                })}>
+                {createOrder.isPending ? 'Raising…' : 'Raise purchase order'}
+              </Button>
+              {createOrder.error && <span role="alert" className="text-[13px] text-[#f3c9a6]">{problemMessage(createOrder.error)}</span>}
+            </div>
+          ) : <p className="text-sm text-inverse-muted">Next: Procurement raises the purchase order to {award.supplierName}.</p>
         )}
         {manage && rfq.status === 'AwardPending' && (
           <div className="mt-auto flex flex-wrap items-center gap-3">

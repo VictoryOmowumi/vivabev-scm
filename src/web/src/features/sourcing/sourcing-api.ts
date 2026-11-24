@@ -88,6 +88,9 @@ export type SourcingEventDetail = {
   evaluation: QuotationEvaluation[] // best first; only quotations that price every line
   award: SourcingAward | null
   awardRejectionReason: string | null
+  purchaseOrderId: string | null // the live order raised from the award
+  purchaseOrderNumber: string | null
+  purchaseOrderStatus: 'Draft' | 'Issued' | null
 }
 
 export type CriterionKind = 'Price' | 'Delivery' | 'PaymentTerms' | 'Manual'
@@ -156,8 +159,8 @@ export const sourcingKeys = {
   awardApproval: (id: string) => ['sourcing', 'award-approval', id] as const,
 }
 
-export const useSourcingEvents = () =>
-  useQuery({ queryKey: sourcingKeys.list, queryFn: ({ signal }) => api<SourcingEventSummary[]>('/api/sourcing/events', { signal }) })
+export const useSourcingEvents = (enabled = true) =>
+  useQuery({ queryKey: sourcingKeys.list, queryFn: ({ signal }) => api<SourcingEventSummary[]>('/api/sourcing/events', { signal }), enabled })
 
 export const useSourcingEvent = (id: string | undefined) =>
   useQuery({

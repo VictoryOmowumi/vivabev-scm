@@ -15,4 +15,11 @@ public interface ISupplierQueries
     /// <summary>Display names (trading name, else legal name), keyed by id. Unknown ids are left out.</summary>
     Task<IReadOnlyDictionary<Guid, string>> GetNamesAsync(
         IReadOnlyCollection<Guid> supplierIds, CancellationToken ct = default);
+
+    /// <summary>Who a purchase order is addressed to: legal details, billing address, primary contact. Null if unknown.</summary>
+    Task<SupplierPartyDto?> GetPartyAsync(Guid supplierId, CancellationToken ct = default);
 }
+
+public sealed record SupplierPartyDto(
+    Guid Id, string Code, string Name, string LegalName, string TaxId, string? Address,
+    string? ContactName, string? ContactEmail, string? ContactPhone);

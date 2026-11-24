@@ -37,6 +37,12 @@ public static class Permissions
         public const string Manage = "sourcing.manage"; // run RFQs: invite, record quotations, close
     }
 
+    public static class PurchaseOrders
+    {
+        public const string View = "purchase-orders.view";     // see purchase orders
+        public const string Manage = "purchase-orders.manage"; // raise, issue and cancel them
+    }
+
     public static class Finance
     {
         public const string ViewBudgets = "finance.budgets.view";                      // every cost centre
@@ -51,6 +57,7 @@ public static class Permissions
         Organisation.View, Organisation.Manage,
         Requisitions.Create, Requisitions.ViewDepartment, Requisitions.ViewAll,
         Sourcing.View, Sourcing.Manage,
+        PurchaseOrders.View, PurchaseOrders.Manage,
         Finance.ViewBudgets, Finance.ViewDepartmentBudgets, Finance.ManageBudgets,
     ];
 }

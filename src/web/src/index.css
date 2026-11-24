@@ -179,6 +179,11 @@
   border: 1px solid var(--hatch-border);
 }
 
+/* Printing a document (a purchase order): plain white page, no app gradient */
+@media print {
+  body { background: #fff !important; color: #111 !important; }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

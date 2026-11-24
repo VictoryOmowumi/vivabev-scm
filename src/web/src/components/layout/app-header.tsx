@@ -13,6 +13,7 @@ const navItems: { to: string; label: string; visible?: (user: CurrentUser) => bo
   { to: '/requisitions', label: 'Requisitions' },
   { to: '/approvals', label: 'Approvals' },
   { to: '/sourcing', label: 'Sourcing', visible: (u) => can(u, Permission.SourcingView) },
+  { to: '/purchase-orders', label: 'Orders', visible: (u) => can(u, Permission.PurchaseOrdersView) },
   { to: '/suppliers', label: 'Suppliers' },
   { to: '/catalogue', label: 'Catalogue' },
   { to: '/budgets', label: 'Budgets', visible: canSeeBudgets },
