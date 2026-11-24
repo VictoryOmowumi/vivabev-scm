@@ -25,9 +25,19 @@ internal sealed class SourcingEventConfiguration : IEntityTypeConfiguration<Sour
         builder.HasMany(e => e.Quotations).WithOne().HasForeignKey(q => q.SourcingEventId).OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(e => e.Quotations).HasField("_quotations").UsePropertyAccessMode(PropertyAccessMode.Field);
 
+        builder.HasMany(e => e.Criteria).WithOne().HasForeignKey(c => c.SourcingEventId).OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(e => e.Criteria).HasField("_criteria").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(e => e.Scores).WithOne().HasForeignKey(s => s.SourcingEventId).OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(e => e.Scores).HasField("_scores").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.Property(e => e.AwardJustification).HasMaxLength(1000);
+        builder.Property(e => e.AwardRejectionReason).HasMaxLength(500);
+
         builder.Ignore(e => e.EstimatedTotal);
         builder.Ignore(e => e.RequisitionIds);
         builder.Ignore(e => e.NeedsCompetition);
+        builder.Ignore(e => e.AwardQuotation);
     }
 }
 
@@ -83,5 +93,27 @@ internal sealed class QuotationLineConfiguration : IEntityTypeConfiguration<Quot
         builder.HasIndex(l => new { l.QuotationId, l.SourcingEventLineId }).IsUnique();
         builder.Property(l => l.Quantity).HasPrecision(18, 4);
         builder.Property(l => l.Notes).HasMaxLength(500);
+    }
+}
+
+internal sealed class EvaluationCriterionConfiguration : IEntityTypeConfiguration<EvaluationCriterion>
+{
+    public void Configure(EntityTypeBuilder<EvaluationCriterion> builder)
+    {
+        builder.ToTable("evaluation_criteria");
+        builder.HasKey(c => c.Id);
+        builder.HasIndex(c => new { c.SourcingEventId, c.SortOrder });
+        builder.Property(c => c.Name).HasMaxLength(100);
+    }
+}
+
+internal sealed class EvaluationScoreConfiguration : IEntityTypeConfiguration<EvaluationScore>
+{
+    public void Configure(EntityTypeBuilder<EvaluationScore> builder)
+    {
+        builder.ToTable("evaluation_scores");
+        builder.HasKey(s => s.Id);
+        builder.HasIndex(s => new { s.CriterionId, s.QuotationId }).IsUnique();
+        builder.Property(s => s.Score).HasPrecision(4, 2);
     }
 }

@@ -13,6 +13,11 @@ internal static class ApprovalPolicySeeder
             new("Requisition", 2, "Head of department", 5_000_000m, ApproverRule.DepartmentRole, "DepartmentManager"),
             new("Requisition", 3, "Managing Director", 25_000_000m, ApproverRule.Role, "Executive"),
             new("Requisition", 4, "Finance controller", 0m, ApproverRule.Role, "FinanceOfficer", overBudgetOnly: true),
+
+            // An RFQ's award: "over budget" here means awarded above the requisitions' estimate
+            new("SourcingAward", 1, "Procurement manager", 0m, ApproverRule.Role, "ProcurementManager"),
+            new("SourcingAward", 2, "Managing Director", 25_000_000m, ApproverRule.Role, "Executive"),
+            new("SourcingAward", 3, "Finance controller", 0m, ApproverRule.Role, "FinanceOfficer", overBudgetOnly: true),
         ];
 
         var existing = await db.PolicySteps

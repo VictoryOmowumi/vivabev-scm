@@ -12,9 +12,17 @@ public sealed class SourcingEvent : AggregateRoot
     public const decimal CompetitiveThreshold = 2_000_000m;
     public const int MinimumSuppliers = 3;
 
+    /// <summary>The document type this aggregate's awards go through Approvals as.</summary>
+    public const string AwardDocumentType = "SourcingAward";
+
+    /// <summary>Choosing anyone but the top scorer needs at least this much explanation.</summary>
+    public const int MinimumJustificationLength = 20;
+
     private readonly List<SourcingEventLine> _lines = [];
     private readonly List<SourcingInvitation> _invitations = [];
     private readonly List<Quotation> _quotations = [];
+    private readonly List<EvaluationCriterion> _criteria = [];
+    private readonly List<EvaluationScore> _scores = [];
 
     private SourcingEvent() { }
 
@@ -41,9 +49,20 @@ public sealed class SourcingEvent : AggregateRoot
     public DateTime? ResponsesClosedAt { get; private set; }
     public string? CancellationReason { get; private set; }
 
+    // The award: the recommended quotation, why, and what happened to it
+    public Guid? AwardQuotationId { get; private set; }
+    public string? AwardJustification { get; private set; }
+    public DateTime? AwardRecommendedAt { get; private set; }
+    public DateTime? AwardedAt { get; private set; }
+    public string? AwardRejectionReason { get; private set; } // the last rejection, cleared on the next recommendation
+
     public IReadOnlyCollection<SourcingEventLine> Lines => _lines.AsReadOnly();
     public IReadOnlyCollection<SourcingInvitation> Invitations => _invitations.AsReadOnly();
     public IReadOnlyCollection<Quotation> Quotations => _quotations.AsReadOnly();
+    public IReadOnlyCollection<EvaluationCriterion> Criteria => _criteria.AsReadOnly();
+    public IReadOnlyCollection<EvaluationScore> Scores => _scores.AsReadOnly();
+
+    public Quotation? AwardQuotation => _quotations.SingleOrDefault(q => q.Id == AwardQuotationId);
 
     public decimal EstimatedTotal => _lines.Sum(l => l.EstimatedTotal);
     public IEnumerable<Guid> RequisitionIds => _lines.Select(l => l.RequisitionId).Distinct();
@@ -185,16 +204,203 @@ public sealed class SourcingEvent : AggregateRoot
 
         Status = SourcingEventStatus.ResponsesClosed;
         ResponsesClosedAt = now;
+
+        if (_criteria.Count == 0)
+        {
+            AddCriterion("Price", CriterionKind.Price, 60);
+            AddCriterion("Delivery time", CriterionKind.Delivery, 20);
+            AddCriterion("Payment terms", CriterionKind.PaymentTerms, 10);
+            AddCriterion("Quality and service", CriterionKind.Manual, 10);
+        }
+    }
+
+    // ---------- evaluation ----------
+
+    /// <summary>Replaces the criteria. Weights must add up to 100; manual scores of removed criteria go too.</summary>
+    public void SetCriteria(IReadOnlyCollection<CriterionSpec> specs)
+    {
+        EnsureStatus(SourcingEventStatus.ResponsesClosed, "change the criteria of");
+        if (specs.Count is 0 or > 8)
+            throw new DomainException("Use between 1 and 8 criteria.");
+        if (specs.Sum(s => s.Weight) != 100)
+            throw new DomainException($"The weights add up to {specs.Sum(s => s.Weight)}; they must add up to 100.");
+        if (specs.Select(s => s.Name.Trim().ToUpperInvariant()).Distinct().Count() != specs.Count)
+            throw new DomainException("Two criteria have the same name.");
+        if (specs.Where(s => s.Kind != CriterionKind.Manual).GroupBy(s => s.Kind).Any(g => g.Count() > 1))
+            throw new DomainException("Price, delivery and payment terms can each be used once.");
+
+        var keep = specs.Where(s => s.Id is not null).Select(s => s.Id!.Value).ToHashSet();
+        if (keep.Any(id => _criteria.All(c => c.Id != id)))
+            throw new DomainException("A criterion is not part of this RFQ.");
+
+        _scores.RemoveAll(s => !keep.Contains(s.CriterionId));
+        _criteria.RemoveAll(c => !keep.Contains(c.Id));
+
+        var order = 1;
+        foreach (var spec in specs)
+        {
+            var existing = spec.Id is null ? null : _criteria.Single(c => c.Id == spec.Id);
+            if (existing is null)
+            {
+                _criteria.Add(new EvaluationCriterion(Id, order, spec.Name, spec.Kind, spec.Weight));
+            }
+            else
+            {
+                if (existing.Kind != spec.Kind)
+                    throw new DomainException($"'{existing.Name}' can't change how it is scored; remove it and add a new one.");
+                existing.Update(spec.Name, spec.Weight);
+                existing.MoveTo(order);
+            }
+            order++;
+        }
+    }
+
+    /// <summary>Sets (or, with null, clears) the buyer's score for a quotation on a manual criterion.</summary>
+    public void Score(Guid criterionId, Guid quotationId, decimal? score)
+    {
+        EnsureStatus(SourcingEventStatus.ResponsesClosed, "score");
+        var criterion = _criteria.SingleOrDefault(c => c.Id == criterionId)
+            ?? throw new DomainException("That criterion is not part of this RFQ.");
+        if (criterion.Kind != CriterionKind.Manual)
+            throw new DomainException($"'{criterion.Name}' is scored automatically.");
+        var quotation = _quotations.SingleOrDefault(q => q.Id == quotationId)
+            ?? throw new DomainException("That quotation is not part of this RFQ.");
+        if (!IsComparable(quotation))
+            throw new DomainException("Only received quotations that price every line are scored.");
+
+        var existing = _scores.SingleOrDefault(s => s.CriterionId == criterionId && s.QuotationId == quotationId);
+        if (score is null)
+        {
+            if (existing is not null)
+                _scores.Remove(existing);
+        }
+        else if (existing is null)
+            _scores.Add(new EvaluationScore(Id, criterionId, quotationId, score.Value));
+        else
+            existing.Set(score.Value);
+    }
+
+    /// <summary>
+    /// Scores every received quotation that prices every line. Price, delivery and payment terms are scored
+    /// against the best offer (best = 10); manual criteria use the buyer's scores. Totals are out of 100.
+    /// </summary>
+    public IReadOnlyList<QuotationEvaluation> Evaluate()
+    {
+        var comparable = _quotations.Where(IsComparable).ToList();
+        if (comparable.Count == 0)
+            return [];
+
+        var lowestTotal = comparable.Min(q => q.Total);
+        var shortestLead = comparable.Min(q => q.LeadTimeDays);
+        var longestTerms = comparable.Max(q => q.PaymentTermsDays);
+
+        decimal? ScoreOf(EvaluationCriterion c, Quotation q) => c.Kind switch
+        {
+            CriterionKind.Price => q.Total == 0 ? 10m : Round(10m * lowestTotal / q.Total),
+            // +1 so a same-day offer doesn't divide by zero
+            CriterionKind.Delivery => Round(10m * (shortestLead + 1) / (q.LeadTimeDays + 1)),
+            CriterionKind.PaymentTerms => longestTerms == 0 ? 10m : Round(10m * q.PaymentTermsDays / longestTerms),
+            _ => _scores.SingleOrDefault(s => s.CriterionId == c.Id && s.QuotationId == q.Id)?.Score,
+        };
+
+        var rows = comparable.Select(q =>
+        {
+            var scores = _criteria.ToDictionary(c => c.Id, c => ScoreOf(c, q));
+            var weighted = _criteria.Sum(c => (scores[c.Id] ?? 0m) * c.Weight / 10m);
+            return (Quotation: q, Scores: scores, Weighted: Round(weighted), Full: scores.Values.All(v => v is not null));
+        }).ToList();
+
+        return rows
+            .OrderByDescending(r => r.Weighted).ThenBy(r => r.Quotation.Total)
+            .Select(r => new QuotationEvaluation(r.Quotation.Id, r.Quotation.SupplierId, r.Quotation.Total, r.Scores,
+                r.Weighted, r.Full, 1 + rows.Count(o => o.Weighted > r.Weighted)))
+            .ToList();
+    }
+
+    // ---------- award ----------
+
+    /// <summary>
+    /// The buyer's recommendation. Every comparable quotation must be fully scored, the chosen one must still be
+    /// valid, and choosing anyone but the top scorer needs a written reason.
+    /// </summary>
+    public void RecommendAward(Guid quotationId, string? justification, DateTime now)
+    {
+        EnsureStatus(SourcingEventStatus.ResponsesClosed, "recommend an award on");
+
+        var quotation = _quotations.SingleOrDefault(q => q.Id == quotationId)
+            ?? throw new DomainException("That quotation is not part of this RFQ.");
+        if (!IsComparable(quotation))
+            throw new DomainException("Only a received quotation that prices every line can be awarded.");
+        if (quotation.ValidUntil < DateOnly.FromDateTime(now))
+            throw new DomainException("That quotation has expired. Ask the supplier to confirm or re-quote.");
+
+        var evaluation = Evaluate();
+        if (evaluation.Any(e => !e.FullyScored))
+            throw new DomainException("Score every quotation on every criterion first.");
+
+        var reason = string.IsNullOrWhiteSpace(justification) ? null : justification.Trim();
+        var chosen = evaluation.Single(e => e.QuotationId == quotationId);
+        if (chosen.Rank != 1 && (reason?.Length ?? 0) < MinimumJustificationLength)
+            throw new DomainException(
+                $"This isn't the top-scoring quotation, so explain why in at least {MinimumJustificationLength} characters.");
+        if (reason?.Length > 1000)
+            throw new DomainException("Keep the justification under 1,000 characters.");
+
+        AwardQuotationId = quotationId;
+        AwardJustification = reason;
+        AwardRecommendedAt = now;
+        AwardRejectionReason = null;
+        Status = SourcingEventStatus.AwardPending;
+    }
+
+    /// <summary>The buyer takes the recommendation back, to rescore or choose again.</summary>
+    public void WithdrawRecommendation()
+    {
+        EnsureStatus(SourcingEventStatus.AwardPending, "withdraw the recommendation of");
+        ClearRecommendation();
+    }
+
+    public void ApproveAward(DateTime now)
+    {
+        EnsureStatus(SourcingEventStatus.AwardPending, "approve the award of");
+        Status = SourcingEventStatus.Awarded;
+        AwardedAt = now;
+    }
+
+    public void RejectAward(string reason)
+    {
+        EnsureStatus(SourcingEventStatus.AwardPending, "reject the award of");
+        ClearRecommendation();
+        AwardRejectionReason = Guard.Required(reason, nameof(reason), 500);
     }
 
     public void Cancel(string reason)
     {
         if (Status is SourcingEventStatus.Cancelled or SourcingEventStatus.Awarded)
             throw new DomainException($"Cannot cancel an RFQ that is {Status}.");
+        if (Status == SourcingEventStatus.AwardPending)
+            throw new DomainException("The award is waiting for approval. Withdraw the recommendation first.");
 
         CancellationReason = Guard.Required(reason, nameof(reason), 500);
         Status = SourcingEventStatus.Cancelled;
     }
+
+    private void AddCriterion(string name, CriterionKind kind, int weight) =>
+        _criteria.Add(new EvaluationCriterion(Id, _criteria.Count + 1, name, kind, weight));
+
+    private void ClearRecommendation()
+    {
+        AwardQuotationId = null;
+        AwardJustification = null;
+        AwardRecommendedAt = null;
+        Status = SourcingEventStatus.ResponsesClosed;
+    }
+
+    /// <summary>Received and pricing every line: the quotations that can be scored and awarded the whole RFQ.</summary>
+    private bool IsComparable(Quotation q) =>
+        q.Status == QuotationStatus.Received && _lines.All(l => q.Lines.Any(ql => ql.SourcingEventLineId == l.Id));
+
+    private static decimal Round(decimal value) => Math.Round(value, 2, MidpointRounding.AwayFromZero);
 
     private void EnsureStatus(SourcingEventStatus expected, string action)
     {

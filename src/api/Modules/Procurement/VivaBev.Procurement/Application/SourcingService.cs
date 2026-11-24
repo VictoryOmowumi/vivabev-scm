@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using VivaBev.Approvals.Contracts;
+using VivaBev.Infrastructure.Persistence;
 using VivaBev.Procurement.Contracts;
 using VivaBev.Procurement.Domain.Requisitions;
 using VivaBev.Procurement.Domain.Sourcing;
@@ -18,6 +20,8 @@ internal sealed class SourcingService(
     ProcurementDbContext db,
     IDocumentNumberGenerator numbers,
     ISupplierQueries suppliers,
+    IApprovals approvals,
+    CrossModuleTransaction transaction,
     ICurrentUser currentUser,
     TimeProvider clock)
 {
@@ -163,18 +167,68 @@ internal sealed class SourcingService(
         await db.SaveChangesAsync(ct);
     }
 
+    // ---------- evaluation and award ----------
+
+    public async Task SetCriteriaAsync(Guid eventId, SetCriteriaRequest request, CancellationToken ct)
+    {
+        var sourcingEvent = await LoadAsync(eventId, ct);
+        sourcingEvent.SetCriteria(request.Criteria
+            .Select(c => new CriterionSpec(c.Id, c.Name, ParseKind(c.Kind), c.Weight))
+            .ToList());
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task SetScoresAsync(Guid eventId, SetScoresRequest request, CancellationToken ct)
+    {
+        var sourcingEvent = await LoadAsync(eventId, ct);
+        foreach (var score in request.Scores)
+            sourcingEvent.Score(score.CriterionId, score.QuotationId, score.Score);
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Records the recommendation and starts its approval, in one transaction.</summary>
+    public Task RecommendAwardAsync(Guid eventId, RecommendAwardRequest request, CancellationToken ct) =>
+        transaction.RunAsync(async () =>
+        {
+            var buyerId = currentUser.UserId ?? throw new ForbiddenException("You must be signed in.");
+            var sourcingEvent = await LoadAsync(eventId, ct);
+            sourcingEvent.RecommendAward(request.QuotationId, request.Justification, Now);
+            await db.SaveChangesAsync(ct);
+
+            var quotation = sourcingEvent.AwardQuotation!;
+            var supplierName = (await suppliers.GetNamesAsync([quotation.SupplierId], ct))
+                .GetValueOrDefault(quotation.SupplierId) ?? "supplier";
+
+            // Awarding above the estimate means more than the requisitions committed, so Finance sees it too
+            await approvals.StartAsync(new ApprovalSubject(
+                SourcingEvent.AwardDocumentType, sourcingEvent.Id, sourcingEvent.Number,
+                Truncate($"Award to {supplierName}: {sourcingEvent.Title}", 200), quotation.Total, buyerId,
+                OverBudget: quotation.Total > sourcingEvent.EstimatedTotal), ct);
+        }, ct);
+
+    public Task WithdrawRecommendationAsync(Guid eventId, CancellationToken ct) =>
+        transaction.RunAsync(async () =>
+        {
+            var sourcingEvent = await LoadAsync(eventId, ct);
+            sourcingEvent.WithdrawRecommendation();
+            await db.SaveChangesAsync(ct);
+            await approvals.WithdrawAsync(SourcingEvent.AwardDocumentType, sourcingEvent.Id, ct);
+        }, ct);
+
     // ---------- helpers ----------
+
+    private static string Truncate(string text, int max) => text.Length <= max ? text : text[..(max - 1)] + "…";
+
+    private static CriterionKind ParseKind(string kind) =>
+        Enum.TryParse<CriterionKind>(kind, ignoreCase: true, out var parsed)
+            ? parsed
+            : throw new DomainException($"'{kind}' is not a way of scoring. Use Price, Delivery, PaymentTerms or Manual.");
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
     private DateOnly Today => DateOnly.FromDateTime(Now);
 
     private async Task<SourcingEvent> LoadAsync(Guid id, CancellationToken ct) =>
-        await db.SourcingEvents
-            .Include(e => e.Lines)
-            .Include(e => e.Invitations)
-            .Include(e => e.Quotations).ThenInclude(q => q.Lines)
-            .AsSplitQuery()
-            .SingleOrDefaultAsync(e => e.Id == id, ct)
+        await db.SourcingEvents.WithEverything().SingleOrDefaultAsync(e => e.Id == id, ct)
         ?? throw new NotFoundException($"RFQ {id} was not found.");
 
     /// <summary>Tracked, with lines; every one must be approved and not already on an RFQ.</summary>

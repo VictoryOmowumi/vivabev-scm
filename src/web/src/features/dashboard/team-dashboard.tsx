@@ -60,7 +60,7 @@ export function TeamDashboard({ user }: { user: CurrentUser }) {
         title: t.title,
         meta: `${t.documentNumber} · ${t.requestedByName} · step ${t.stepNumber} of ${t.totalSteps}`,
         amount: t.amount,
-        flag: t.overBudget ? 'Over budget' : undefined,
+        flag: t.overBudget ? (t.documentType === 'SourcingAward' ? 'Above estimate' : 'Over budget') : undefined,
       }))
     : requisitions.data && rows
         .filter((r) => r.status === 'Draft' && r.requesterId === user.id)

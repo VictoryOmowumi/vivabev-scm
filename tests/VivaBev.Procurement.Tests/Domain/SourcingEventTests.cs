@@ -179,4 +179,119 @@ public class SourcingEventTests
         requisition.ReturnFromSourcing();
         Assert.Equal(RequisitionStatus.Approved, requisition.Status);
     }
+
+    // ---------- evaluation and award ----------
+
+    /// <summary>Closed RFQ with two complete quotations: A is cheaper, B delivers faster and gives more credit.</summary>
+    private static SourcingEvent Closed(out Quotation a, out Quotation b)
+    {
+        var e = Draft();
+        Guid supplierA = Guid.NewGuid(), supplierB = Guid.NewGuid();
+        e.Invite(supplierA, Now);
+        e.Invite(supplierB, Now);
+        e.Publish(Now);
+        var line = e.Lines.Single().Id;
+        a = e.RecordQuotation(supplierA, null, Today.AddDays(30), 20, 30, [new QuotedLine(line, 400_000m, 1, null)], Now);
+        b = e.RecordQuotation(supplierB, null, Today.AddDays(30), 10, 60, [new QuotedLine(line, 500_000m, 1, null)], Now);
+        e.CloseResponses(Now);
+        return e;
+    }
+
+    private static Guid Manual(SourcingEvent e) => e.Criteria.Single(c => c.Kind == CriterionKind.Manual).Id;
+
+    [Fact]
+    public void Closing_responses_sets_default_criteria_that_add_up_to_100()
+    {
+        var e = Closed(out _, out _);
+
+        Assert.Equal(4, e.Criteria.Count);
+        Assert.Equal(100, e.Criteria.Sum(c => c.Weight));
+    }
+
+    [Fact]
+    public void Price_delivery_and_terms_are_scored_against_the_best_offer()
+    {
+        var e = Closed(out var a, out var b);
+        e.Score(Manual(e), a.Id, 5);
+        e.Score(Manual(e), b.Id, 5);
+
+        var evaluation = e.Evaluate();
+        var price = e.Criteria.Single(c => c.Kind == CriterionKind.Price).Id;
+        var delivery = e.Criteria.Single(c => c.Kind == CriterionKind.Delivery).Id;
+
+        var rowA = evaluation.Single(r => r.QuotationId == a.Id);
+        var rowB = evaluation.Single(r => r.QuotationId == b.Id);
+        Assert.Equal(10m, rowA.Scores[price]);
+        Assert.Equal(8m, rowB.Scores[price]);       // 400k / 500k
+        Assert.Equal(10m, rowB.Scores[delivery]);
+        Assert.Equal(5.24m, rowA.Scores[delivery]); // (10 + 1) / (20 + 1)
+        // A: 60 + 10.48 + 5 + 5 = 80.48; B: 48 + 20 + 10 + 5 = 83
+        Assert.Equal(80.48m, rowA.WeightedTotal);
+        Assert.Equal(83m, rowB.WeightedTotal);
+        Assert.Equal(1, rowB.Rank);
+    }
+
+    [Fact]
+    public void Weights_must_add_up_to_100()
+    {
+        var e = Closed(out _, out _);
+        Assert.Throws<DomainException>(() => e.SetCriteria(
+            [new CriterionSpec(null, "Price", CriterionKind.Price, 70), new CriterionSpec(null, "Fit", CriterionKind.Manual, 20)]));
+
+        e.SetCriteria([new CriterionSpec(null, "Price", CriterionKind.Price, 80), new CriterionSpec(null, "Fit", CriterionKind.Manual, 20)]);
+        Assert.Equal(2, e.Criteria.Count);
+    }
+
+    [Fact]
+    public void Automatic_criteria_cannot_be_scored_by_hand()
+    {
+        var e = Closed(out var a, out _);
+        var price = e.Criteria.Single(c => c.Kind == CriterionKind.Price).Id;
+        Assert.Throws<DomainException>(() => e.Score(price, a.Id, 7));
+    }
+
+    [Fact]
+    public void An_award_needs_every_quotation_scored()
+    {
+        var e = Closed(out var a, out var b);
+        e.Score(Manual(e), b.Id, 6);
+
+        Assert.Throws<DomainException>(() => e.RecommendAward(b.Id, null, Now));
+    }
+
+    [Fact]
+    public void Choosing_anyone_but_the_top_scorer_needs_a_reason()
+    {
+        var e = Closed(out var a, out var b);
+        e.Score(Manual(e), a.Id, 5);
+        e.Score(Manual(e), b.Id, 5);
+
+        Assert.Throws<DomainException>(() => e.RecommendAward(a.Id, "Cheaper", Now));
+        e.RecommendAward(a.Id, "Cheaper by 100k and delivery time is not critical here", Now);
+
+        Assert.Equal(SourcingEventStatus.AwardPending, e.Status);
+        Assert.Equal(400_000m, e.AwardQuotation!.Total);
+    }
+
+    [Fact]
+    public void A_rejected_award_goes_back_to_evaluation_with_the_reason()
+    {
+        var e = Closed(out var a, out var b);
+        e.Score(Manual(e), a.Id, 5);
+        e.Score(Manual(e), b.Id, 5);
+        e.RecommendAward(b.Id, null, Now);
+
+        Assert.Throws<DomainException>(() => e.Cancel("Changed our mind"));
+        Assert.Throws<DomainException>(() => e.Score(Manual(e), a.Id, 9)); // frozen while pending
+
+        e.RejectAward("Get a third quote first");
+        Assert.Equal(SourcingEventStatus.ResponsesClosed, e.Status);
+        Assert.Null(e.AwardQuotationId);
+        Assert.Equal("Get a third quote first", e.AwardRejectionReason);
+
+        e.RecommendAward(b.Id, null, Now);
+        e.ApproveAward(Now);
+        Assert.Equal(SourcingEventStatus.Awarded, e.Status);
+        Assert.Null(e.AwardRejectionReason);
+    }
 }

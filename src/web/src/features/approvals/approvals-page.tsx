@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/states/empty-state'
 import { ErrorState } from '@/components/states/error-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRequisition } from '@/features/requisitions/requisitions-api'
+import { AwardSummary } from '@/features/sourcing/award-summary'
 import { formatDateTime, formatNaira } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { DecisionPanel } from './decision-panel'
@@ -99,7 +100,9 @@ export function ApprovalsPage() {
                       <span className="font-heading text-xl">{formatNaira(item.amount)}</span>
                       {item.overBudget && (
                         <span className={cn('rounded-full px-2.5 py-0.5 text-[11px] font-bold',
-                          on ? 'bg-[#f3c9a6] text-[#5a2a08]' : 'bg-over text-over-foreground')}>Over budget</span>
+                          on ? 'bg-[#f3c9a6] text-[#5a2a08]' : 'bg-over text-over-foreground')}>
+                          {item.documentType === 'SourcingAward' ? 'Above estimate' : 'Over budget'}
+                        </span>
                       )}
                     </span>
                   </button>
@@ -115,10 +118,10 @@ export function ApprovalsPage() {
   )
 }
 
-/** The right-hand card: the requisition behind the selected item, plus approve and reject. */
+/** The right-hand card: the requisition or award behind the selected item, plus approve and reject. */
 function Preview({ item }: { item: ApprovalTask | DecidedTask }) {
-  const requisition = useRequisition(item.documentId)
   const waiting = 'stepName' in item
+  const isAward = item.documentType === 'SourcingAward'
 
   return (
     <Panel aria-label="Selected request" className="flex min-w-0 flex-[1_1_460px] flex-col gap-4 p-6">
@@ -129,6 +132,33 @@ function Preview({ item }: { item: ApprovalTask | DecidedTask }) {
         <h2 className="mt-1.5 text-[28px] leading-tight font-light">{item.title}</h2>
       </div>
 
+      {isAward ? <AwardSummary rfqId={item.documentId} /> : <RequisitionSummary id={item.documentId} />}
+
+      {waiting ? (
+        <>
+          <Link to="/copilot" className="flex items-center gap-2.5 rounded-[18px] border border-dashed border-input px-3.5 py-3 text-[13px]">
+            <HugeiconsIcon icon={SparklesIcon} size={18} strokeWidth={1.5} className="flex-none text-brand" />
+            Ask Copilot about {item.documentNumber}
+          </Link>
+          <DecisionPanel requestId={item.requestId} documentNumber={item.documentNumber}
+            requesterName={item.requestedByName} />
+        </>
+      ) : (
+        item.myComment && <p className="text-sm"><span className="text-muted-foreground">Your comment:</span> “{item.myComment}”</p>
+      )}
+
+      <Link to={isAward ? `/sourcing/${item.documentId}` : `/requisitions/${item.documentId}`}
+        className="text-center text-sm font-semibold hover:text-brand">
+        {isAward ? 'Open the RFQ and its evaluation' : 'Open the full requisition'}
+      </Link>
+    </Panel>
+  )
+}
+
+function RequisitionSummary({ id }: { id: string }) {
+  const requisition = useRequisition(id)
+  return (
+    <>
       {requisition.isPending && <Skeleton className="h-48 rounded-2xl" />}
       {requisition.isError && <p className="text-sm text-destructive">Couldn't load the requisition: {requisition.error.message}</p>}
 
@@ -160,23 +190,6 @@ function Preview({ item }: { item: ApprovalTask | DecidedTask }) {
           </>
         )
       })()}
-
-      {waiting ? (
-        <>
-          <Link to="/copilot" className="flex items-center gap-2.5 rounded-[18px] border border-dashed border-input px-3.5 py-3 text-[13px]">
-            <HugeiconsIcon icon={SparklesIcon} size={18} strokeWidth={1.5} className="flex-none text-brand" />
-            Ask Copilot about {item.documentNumber}
-          </Link>
-          <DecisionPanel requestId={item.requestId} documentNumber={item.documentNumber}
-            requesterName={item.requestedByName} />
-        </>
-      ) : (
-        item.myComment && <p className="text-sm"><span className="text-muted-foreground">Your comment:</span> “{item.myComment}”</p>
-      )}
-
-      <Link to={`/requisitions/${item.documentId}`} className="text-center text-sm font-semibold hover:text-brand">
-        Open the full requisition
-      </Link>
-    </Panel>
+    </>
   )
 }
