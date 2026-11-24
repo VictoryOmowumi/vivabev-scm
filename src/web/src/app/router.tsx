@@ -17,6 +17,10 @@ import { RfqPage } from '@/features/sourcing/rfq-page'
 import { SourcingPage } from '@/features/sourcing/sourcing-page'
 import { CataloguePage } from '@/features/catalogue/catalogue-page'
 import { InvoicePage } from '@/features/invoices/invoice-page'
+import { NewStockRequestPage } from '@/features/stock/new-stock-request-page'
+import { StockCountPage } from '@/features/stock/stock-count-page'
+import { StockRequestPage } from '@/features/stock/stock-request-page'
+import { StockRequestsPage } from '@/features/stock/stock-requests-page'
 import { InvoicesPage } from '@/features/invoices/invoices-page'
 import { NewInvoicePage } from '@/features/invoices/new-invoice-page'
 import { SupplierPage } from '@/features/suppliers/supplier-page'
@@ -45,7 +49,11 @@ export const router = createBrowserRouter([
           { path: 'invoices', element: <InvoicesPage /> },
           { path: 'invoices/new', element: <NewInvoicePage /> },
           { path: 'invoices/:id', element: <InvoicePage /> },
+          { path: 'stock-requests', element: <StockRequestsPage /> },
+          { path: 'stock-requests/new', element: <NewStockRequestPage /> },
+          { path: 'stock-requests/:id', element: <StockRequestPage /> },
           { path: 'warehouse', element: <WarehousePage /> },
+          { path: 'warehouse/counts/:id', element: <StockCountPage /> },
           { path: 'warehouse/orders/:id', element: <ReceivePage /> },
           { path: 'warehouse/receipts/:id', element: <ReceiptPage /> },
           { path: 'budgets', element: <BudgetsPage /> },

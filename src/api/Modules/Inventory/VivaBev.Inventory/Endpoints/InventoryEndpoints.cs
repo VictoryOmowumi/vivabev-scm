@@ -94,42 +94,29 @@ internal static class InventoryEndpoints
                     .ToList()));
         });
 
-        // Stock on hand per site and item: the sum of movements, valued at the average receipt cost
-        group.MapGet("/stock", async (Guid? siteId, InventoryDbContext db, IOrganisationQueries organisation,
+        // Stock on hand per site and item: the sum of movements, valued at the average cost
+        group.MapGet("/stock", async (Guid? siteId, StockLedger ledger, IOrganisationQueries organisation,
             CancellationToken ct) =>
         {
-            var query = db.StockMovements.AsNoTracking();
-            if (siteId is not null)
-                query = query.Where(m => m.SiteId == siteId);
-
-            // Grouped in memory: movements are few per item, and this keeps the query simple to translate
-            var movements = await query.ToListAsync(ct);
-            var rows = movements
-                .GroupBy(m => new { m.SiteId, m.ItemId })
-                .Select(g => new
-                {
-                    g.Key.SiteId, g.Key.ItemId,
-                    g.OrderByDescending(m => m.OccurredAt).First().ItemCode,
-                    g.OrderByDescending(m => m.OccurredAt).First().Description,
-                    g.OrderByDescending(m => m.OccurredAt).First().UomCode,
-                    OnHand = g.Sum(m => m.Quantity),
-                    ReceivedQty = g.Where(m => m.Quantity > 0).Sum(m => m.Quantity),
-                    ReceivedValue = g.Where(m => m.Quantity > 0).Sum(m => m.Quantity * m.UnitCost),
-                    Last = g.Max(m => m.OccurredAt),
-                })
-                .ToList();
-
+            var rows = await ledger.BalancesAsync(siteId, null, ct);
             var sites = await SitesAsync(organisation, rows.Select(r => r.SiteId), ct);
             return rows
-                .Select(r =>
-                {
-                    var average = r.ReceivedQty == 0 ? 0 : decimal.Round(r.ReceivedValue / r.ReceivedQty, 2);
-                    return new StockBalanceDto(r.SiteId, sites.GetValueOrDefault(r.SiteId)?.Code ?? "?", r.ItemId,
-                        r.ItemCode, r.Description, r.UomCode, r.OnHand, average, decimal.Round(r.OnHand * average, 2), r.Last);
-                })
+                .Select(r => new StockBalanceDto(r.SiteId, sites.GetValueOrDefault(r.SiteId)?.Code ?? "?", r.ItemId,
+                    r.ItemCode, r.Description, r.UomCode, r.OnHand, r.AverageCost, decimal.Round(r.OnHand * r.AverageCost, 2),
+                    r.LastMovementAt))
                 .OrderBy(r => r.SiteCode).ThenBy(r => r.ItemCode)
                 .ToList();
         });
+
+        // One item's movements at one site, newest first: receipts, issues and count adjustments
+        group.MapGet("/stock/movements", async (Guid siteId, Guid itemId, InventoryDbContext db, CancellationToken ct) =>
+            await db.StockMovements.AsNoTracking()
+                .Where(m => m.SiteId == siteId && m.ItemId == itemId)
+                .OrderByDescending(m => m.OccurredAt)
+                .Take(100)
+                .Select(m => new StockMovementDto(m.OccurredAt, m.DocumentType, m.DocumentId, m.DocumentNumber,
+                    m.Quantity, m.UnitCost))
+                .ToListAsync(ct));
 
         group.MapPost("/receipts", async (ReceiveGoodsRequest request, GoodsReceiptService service, CancellationToken ct) =>
         {

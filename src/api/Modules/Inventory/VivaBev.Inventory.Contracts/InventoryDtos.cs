@@ -38,7 +38,11 @@ public sealed record GoodsReceiptDetailDto(
     string SiteCode, string SiteName, string? DeliveryNoteNumber, string? Notes, string ReceivedByName,
     DateTime ReceivedAt, decimal AcceptedValue, IReadOnlyList<GoodsReceiptLineDto> Lines);
 
-/// <summary>Stock of one item at one site: the sum of its movements, valued at the average receipt cost.</summary>
+/// <summary>Stock of one item at one site: the sum of its movements, valued at the average cost.</summary>
 public sealed record StockBalanceDto(
     Guid SiteId, string SiteCode, Guid ItemId, string ItemCode, string Description, string UomCode, decimal OnHand,
     decimal AverageCost, decimal Value, DateTime LastMovementAt);
+
+/// <summary>One line in an item's stock ledger. DocumentType is GoodsReceipt, StockRequest or StockCount.</summary>
+public sealed record StockMovementDto(DateTime OccurredAt, string DocumentType, Guid DocumentId, string DocumentNumber,
+    decimal Quantity, decimal UnitCost);

@@ -4,11 +4,13 @@ namespace VivaBev.Inventory.Domain;
 
 /// <summary>
 /// One change to stock of a catalogue item at a site. Stock on hand is the sum of its movements; a receipt adds
-/// stock, and later issues and adjustments will take it away. Movements are never edited, only added.
+/// stock, an issue to a department takes it out, and a count adjusts it either way. Movements are never edited, only added.
 /// </summary>
 public sealed class StockMovement : AggregateRoot
 {
     public const string ReceiptDocumentType = "GoodsReceipt";
+    public const string IssueDocumentType = "StockRequest";
+    public const string CountDocumentType = "StockCount";
 
     private StockMovement() { }
 

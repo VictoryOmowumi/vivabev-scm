@@ -45,8 +45,22 @@ A supplier gets one contact when it's created. There are no endpoints yet to add
 
 **When to revisit:** before suppliers are onboarded for real. Add the endpoints, plus an edit panel on the supplier page.
 
-## Stock goes in but never comes out (Inventory)
+## Two issues of the same item at the same moment can overdraw stock (Inventory)
 
-Receipts add stock movements. Nothing issues stock out to departments or adjusts it after a count, so stock on hand only ever grows.
+Issuing checks the item's on-hand figure and then adds a negative movement. Two storekeepers issuing the last units at the same moment can both pass the check, leaving stock below zero.
 
-**When to revisit:** with stock issues and stock counts. Both add negative movements to the same ledger.
+**Why it's fine today:** one storekeeper per site, and a count will show and correct it.
+
+**When to revisit:** with several issuers per site. Keep a balance row per site and item, update it in the same transaction, and add a check constraint (`on_hand >= 0`) or take an `UPDLOCK` on it.
+
+## Stock requests have no approval step (Inventory)
+
+A request goes straight to the warehouse. The stock was approved when it was bought, and the warehouse can reject.
+
+**When to revisit:** if departments start asking for expensive or controlled items. Route requests over a value limit through the department manager with the existing approvals module.
+
+## Issued stock isn't charged to the requesting cost centre's budget (Inventory, Finance)
+
+The budget is consumed when the purchase is invoiced, against the cost centre that bought it. A request records the cost centre it's for, but nothing moves between budgets when stock is issued.
+
+**When to revisit:** if a central store buys for everyone and departments should carry their own usage. Post the issue value (at average cost) from the store's cost centre to the requester's.

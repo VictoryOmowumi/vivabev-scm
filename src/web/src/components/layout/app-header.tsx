@@ -16,6 +16,7 @@ const navItems: { to: string; label: string; visible?: (user: CurrentUser) => bo
   { to: '/purchase-orders', label: 'Orders', visible: (u) => can(u, Permission.PurchaseOrdersView) },
   { to: '/invoices', label: 'Invoices', visible: (u) => can(u, Permission.InvoicesView) },
   { to: '/warehouse', label: 'Warehouse', visible: (u) => can(u, Permission.InventoryView) },
+  { to: '/stock-requests', label: 'Stock', visible: (u) => can(u, Permission.StockRequest) && !can(u, Permission.InventoryView) },
   { to: '/suppliers', label: 'Suppliers', visible: (u) => can(u, Permission.SuppliersView) },
   { to: '/catalogue', label: 'Catalogue' },
   { to: '/budgets', label: 'Budgets', visible: canSeeBudgets },
