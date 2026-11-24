@@ -1,4 +1,5 @@
 import { useDeferredValue, useState, type FormEvent } from 'react'
+import { FieldSelect } from '@/components/field-select'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { PlusSignIcon, Search01Icon } from '@hugeicons/core-free-icons'
 import { FormField } from '@/components/form-field'
@@ -139,23 +140,16 @@ function FreeTextLineForm({ onAdd, pending }: { onAdd: AddFn; pending: boolean }
       </FormField>
       <div className="grid gap-3 sm:grid-cols-3">
         <FormField id="ft-category" label="Category">
-          <select id="ft-category" className={fieldClass} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-            <option value="">Choose…</option>
-            {categories.data?.filter((c) => c.isActive).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          <FieldSelect id="ft-category" value={categoryId} onChange={setCategoryId}
+            options={(categories.data ?? []).filter((c) => c.isActive).map((c) => ({ value: c.id, label: c.name }))} />
         </FormField>
         <FormField id="ft-type" label="Type">
-          <select id="ft-type" className={fieldClass} value={lineType} onChange={(e) => setLineType(e.target.value as 'Goods' | 'Service')}>
-            <option value="Goods">Goods</option>
-            <option value="Service">Service</option>
-          </select>
+          <FieldSelect id="ft-type" value={lineType} onChange={(v) => setLineType(v as 'Goods' | 'Service')}
+            options={[{ value: 'Goods', label: 'Goods' }, { value: 'Service', label: 'Service' }]} />
         </FormField>
         <FormField id="ft-uom" label="Unit">
-          <select id="ft-uom" className={fieldClass} value={uomCode} onChange={(e) => setUomCode(e.target.value)}>
-            {(units.data ?? [{ code: 'EA', name: 'Each', dimension: 'Count' }]).map((u) => (
-              <option key={u.code} value={u.code}>{u.code} · {u.name}</option>
-            ))}
-          </select>
+          <FieldSelect id="ft-uom" value={uomCode} onChange={setUomCode}
+            options={(units.data ?? [{ code: 'EA', name: 'Each', dimension: 'Count' }]).map((u) => ({ value: u.code, label: `${u.code} · ${u.name}` }))} />
         </FormField>
       </div>
       <QuantityAndPrice quantity={quantity} price={price} uom={uomCode}

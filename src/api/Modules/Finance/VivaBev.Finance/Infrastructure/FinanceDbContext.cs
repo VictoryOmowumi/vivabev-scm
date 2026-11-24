@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using VivaBev.Finance.Domain;
+using VivaBev.Finance.Domain.Invoices;
 using VivaBev.Infrastructure.Persistence;
 
 namespace VivaBev.Finance.Infrastructure;
@@ -11,4 +12,5 @@ public sealed class FinanceDbContext(DbContextOptions<FinanceDbContext> options)
     protected override string Schema => SchemaName;
 
     public DbSet<Budget> Budgets => Set<Budget>();
+    public DbSet<SupplierInvoice> SupplierInvoices => Set<SupplierInvoice>();
 }

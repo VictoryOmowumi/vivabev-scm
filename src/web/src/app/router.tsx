@@ -16,6 +16,9 @@ import { NewRfqPage } from '@/features/sourcing/new-rfq-page'
 import { RfqPage } from '@/features/sourcing/rfq-page'
 import { SourcingPage } from '@/features/sourcing/sourcing-page'
 import { CataloguePage } from '@/features/catalogue/catalogue-page'
+import { InvoicePage } from '@/features/invoices/invoice-page'
+import { InvoicesPage } from '@/features/invoices/invoices-page'
+import { NewInvoicePage } from '@/features/invoices/new-invoice-page'
 import { SupplierPage } from '@/features/suppliers/supplier-page'
 import { SuppliersPage } from '@/features/suppliers/suppliers-page'
 import { ReceiptPage } from '@/features/warehouse/receipt-page'
@@ -39,6 +42,9 @@ export const router = createBrowserRouter([
           { path: 'suppliers', element: <SuppliersPage /> },
           { path: 'suppliers/:id', element: <SupplierPage /> },
           { path: 'catalogue', element: <CataloguePage /> },
+          { path: 'invoices', element: <InvoicesPage /> },
+          { path: 'invoices/new', element: <NewInvoicePage /> },
+          { path: 'invoices/:id', element: <InvoicePage /> },
           { path: 'warehouse', element: <WarehousePage /> },
           { path: 'warehouse/orders/:id', element: <ReceivePage /> },
           { path: 'warehouse/receipts/:id', element: <ReceiptPage /> },

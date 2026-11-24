@@ -42,4 +42,18 @@ public sealed class BudgetCommitment : AuditableEntity
         Status = CommitmentStatus.Released;
         ClosedAt = now;
     }
+
+    /// <summary>Takes part of an open commitment off it as it gets invoiced; closes it once nothing is left.</summary>
+    internal void Reduce(decimal amount, DateTime now)
+    {
+        Amount -= Math.Min(amount, Amount);
+        if (Amount == 0)
+            Release(now);
+    }
+
+    internal void MarkConsumed(DateTime now)
+    {
+        Status = CommitmentStatus.Consumed;
+        ClosedAt = now;
+    }
 }

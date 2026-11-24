@@ -17,12 +17,14 @@ public static class FinanceModule
         services.AddModuleDbContext<FinanceDbContext>(configuration, FinanceDbContext.SchemaName);
         services.AddScoped<BudgetService>();
         services.AddScoped<IBudgets>(sp => sp.GetRequiredService<BudgetService>());
+        services.AddScoped<InvoiceService>();
         return services;
     }
 
     public static IEndpointRouteBuilder MapFinanceEndpoints(this IEndpointRouteBuilder app)
     {
         BudgetEndpoints.Map(app);
+        InvoiceEndpoints.Map(app);
         return app;
     }
 

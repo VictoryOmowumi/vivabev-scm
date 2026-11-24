@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { FieldSelect } from '@/components/field-select'
 import { toast } from 'sonner'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { Add01Icon, Delete02Icon } from '@hugeicons/core-free-icons'
@@ -232,12 +233,11 @@ function CriteriaEditor({ rfq, onDone }: { rfq: SourcingEventDetail; onDone: () 
             {r.id ? (
               <span className="w-48 text-xs text-muted-foreground">{criterionKindLabels[r.kind]}</span>
             ) : (
-              <select aria-label="How it's scored" value={r.kind} onChange={(e) => set(r.key, { kind: e.target.value as CriterionKind })}
-                className={cn(fieldClass, 'h-9 w-48')}>
-                {(['Manual', 'Price', 'Delivery', 'PaymentTerms'] as CriterionKind[])
+              <FieldSelect aria-label="How it's scored" size="sm" className="w-48" value={r.kind}
+                onChange={(v) => set(r.key, { kind: v as CriterionKind })}
+                options={(['Manual', 'Price', 'Delivery', 'PaymentTerms'] as CriterionKind[])
                   .filter((k) => k === 'Manual' || k === r.kind || !usedAuto.has(k))
-                  .map((k) => <option key={k} value={k}>{criterionKindLabels[k]}</option>)}
-              </select>
+                  .map((k) => ({ value: k, label: criterionKindLabels[k] }))} />
             )}
             <label className="flex items-center gap-1.5 text-[13px]">
               <input type="number" min={1} max={100} aria-label={`Weight of ${r.name || 'criterion'}`} value={Number.isFinite(r.weight) ? r.weight : ''}

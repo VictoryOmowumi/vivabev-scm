@@ -13,6 +13,8 @@ export const Permission = {
   SourcingManage: 'sourcing.manage',
   PurchaseOrdersView: 'purchase-orders.view',
   PurchaseOrdersManage: 'purchase-orders.manage',
+  InvoicesView: 'finance.invoices.view',
+  InvoicesManage: 'finance.invoices.manage',
   InventoryView: 'inventory.view',
   InventoryReceive: 'inventory.receive',
   CatalogueManage: 'catalogue.manage',
