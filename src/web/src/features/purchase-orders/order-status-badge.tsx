@@ -6,6 +6,7 @@ const styles: Record<PurchaseOrderStatus, string> = {
   Issued: 'bg-[#dde7f3] text-[#1f3d5c] dark:bg-[#6aa0d8]/20 dark:text-[#a9cdeb]',
   PartiallyReceived: 'bg-pending text-pending-foreground',
   Received: 'bg-success text-success-foreground',
+  Closed: 'bg-inverse text-inverse-foreground',
   Cancelled: 'bg-cancelled text-cancelled-foreground',
 }
 

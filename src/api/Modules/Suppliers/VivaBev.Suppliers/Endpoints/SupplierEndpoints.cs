@@ -136,5 +136,56 @@ internal static class SupplierEndpoints
             await service.ReinstateAsync(id, ct);
             return Results.NoContent();
         }).RequireAuthorization(Permissions.Suppliers.Approve);
+
+        // ---------- details, contacts and addresses ----------
+
+        group.MapPut("/{id:guid}/details", async (Guid id, UpdateSupplierDetailsRequest request, SupplierService service,
+            CancellationToken ct) =>
+        {
+            await service.UpdateDetailsAsync(id, request, ct);
+            return Results.NoContent();
+        }).RequireAuthorization(Permissions.Suppliers.Manage);
+
+        group.MapPost("/{id:guid}/contacts", async (Guid id, SupplierContactRequest request, SupplierService service,
+            CancellationToken ct) =>
+        {
+            var contactId = await service.AddContactAsync(id, request, ct);
+            return Results.Created($"/api/suppliers/{id}", new { id = contactId });
+        }).RequireAuthorization(Permissions.Suppliers.Manage);
+
+        group.MapPut("/{id:guid}/contacts/{contactId:guid}", async (Guid id, Guid contactId,
+            SupplierContactRequest request, SupplierService service, CancellationToken ct) =>
+        {
+            await service.UpdateContactAsync(id, contactId, request, ct);
+            return Results.NoContent();
+        }).RequireAuthorization(Permissions.Suppliers.Manage);
+
+        group.MapDelete("/{id:guid}/contacts/{contactId:guid}", async (Guid id, Guid contactId,
+            SupplierService service, CancellationToken ct) =>
+        {
+            await service.RemoveContactAsync(id, contactId, ct);
+            return Results.NoContent();
+        }).RequireAuthorization(Permissions.Suppliers.Manage);
+
+        group.MapPost("/{id:guid}/addresses", async (Guid id, SupplierAddressRequest request, SupplierService service,
+            CancellationToken ct) =>
+        {
+            var addressId = await service.AddAddressAsync(id, request, ct);
+            return Results.Created($"/api/suppliers/{id}", new { id = addressId });
+        }).RequireAuthorization(Permissions.Suppliers.Manage);
+
+        group.MapPut("/{id:guid}/addresses/{addressId:guid}", async (Guid id, Guid addressId,
+            SupplierAddressRequest request, SupplierService service, CancellationToken ct) =>
+        {
+            await service.UpdateAddressAsync(id, addressId, request, ct);
+            return Results.NoContent();
+        }).RequireAuthorization(Permissions.Suppliers.Manage);
+
+        group.MapDelete("/{id:guid}/addresses/{addressId:guid}", async (Guid id, Guid addressId,
+            SupplierService service, CancellationToken ct) =>
+        {
+            await service.RemoveAddressAsync(id, addressId, ct);
+            return Results.NoContent();
+        }).RequireAuthorization(Permissions.Suppliers.Manage);
     }
 }

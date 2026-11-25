@@ -17,6 +17,7 @@ import { fieldClass } from '@/lib/field-class'
 import { formatDate, formatNaira } from '@/lib/format'
 import { can, Permission } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
+import { SupplierEditor } from './supplier-editor'
 import { SupplierStatusBadge } from './supplier-status-badge'
 import {
   useCategoryDecision, useRequestCategory, useSupplier, useSupplierAction,
@@ -45,6 +46,8 @@ function Supplier({ s }: { s: SupplierDetail }) {
   const { data: user } = useCurrentUser()
   const manage = can(user, Permission.SuppliersManage)
   const approver = can(user, Permission.SuppliersApprove)
+  const [editing, setEditing] = useState(false)
+  const editable = manage && s.status !== 'Blocked'
 
   return (
     <div className="flex flex-col gap-6">
@@ -67,13 +70,23 @@ function Supplier({ s }: { s: SupplierDetail }) {
 
       <NextStep s={s} manage={manage} approver={approver} />
 
+      {editing && <SupplierEditor s={s} onDone={() => setEditing(false)} />}
+
       <section className="flex flex-wrap items-start gap-5">
         <div className="flex min-w-0 flex-[2_1_560px] flex-col gap-5">
           <Categories s={s} manage={manage} approver={approver} />
           {can(user, Permission.PurchaseOrdersView) && <Orders supplierId={s.id} />}
         </div>
         <aside aria-label="Details" className="flex min-w-0 flex-[1_1_300px] flex-col gap-4 rounded-[28px] bg-inverse p-6 text-inverse-foreground">
-          <h2 className="text-xl font-normal">Details</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-normal">Details</h2>
+            {editable && !editing && (
+              <Button size="pill-sm" variant="outline" className="border-inverse-muted/40 bg-transparent text-inverse-foreground hover:bg-inverse-row hover:text-inverse-foreground"
+                onClick={() => { setEditing(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }}>
+                Edit
+              </Button>
+            )}
+          </div>
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
             <Term label="Tax ID">{s.taxId}</Term>
             <Term label="Country">{s.countryCode}</Term>

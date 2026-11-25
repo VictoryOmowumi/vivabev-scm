@@ -18,6 +18,7 @@ public static class FinanceModule
         services.AddScoped<BudgetService>();
         services.AddScoped<IBudgets>(sp => sp.GetRequiredService<BudgetService>());
         services.AddScoped<InvoiceService>();
+        services.AddScoped<IInvoiceQueries, InvoiceQueries>();
         return services;
     }
 

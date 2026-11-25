@@ -29,6 +29,9 @@ export type SupplierCategory = {
   approvedAt: string | null
 }
 
+export type SupplierContact = { id: string; name: string; email: string; phone: string | null; role: string | null; isPrimary: boolean }
+export type SupplierAddress = { id: string; addressType: 'Billing' | 'Shipping'; line1: string; line2: string | null; city: string; state: string; countryCode: string }
+
 // Mirrors SupplierDetailDto
 export type SupplierDetail = {
   id: string
@@ -41,8 +44,8 @@ export type SupplierDetail = {
   countryCode: string
   defaultCurrencyCode: string
   paymentTermsDays: number
-  contacts: { id: string; name: string; email: string; phone: string | null; role: string | null; isPrimary: boolean }[]
-  addresses: { id: string; addressType: string; line1: string; line2: string | null; city: string; state: string; countryCode: string }[]
+  contacts: SupplierContact[]
+  addresses: SupplierAddress[]
   categories: SupplierCategory[]
 }
 
@@ -101,3 +104,29 @@ export const useRequestCategory = (id: string) =>
 export const useCategoryDecision = (id: string) =>
   useSupplierMutation(({ categoryId, decision }: { categoryId: string; decision: 'approve' | 'revoke' }) =>
     api<void>(`/api/suppliers/${id}/categories/${categoryId}/${decision}`, { method: 'POST' }))
+
+export type ContactInput = Omit<SupplierContact, 'id'>
+export type AddressInput = Omit<SupplierAddress, 'id'>
+
+export const useUpdateSupplierDetails = (id: string) =>
+  useSupplierMutation((body: { tradingName: string | null; paymentTermsDays: number }) =>
+    api<void>(`/api/suppliers/${id}/details`, { method: 'PUT', body }))
+
+/** Add (no id), change or remove a contact. */
+export const useSaveContact = (id: string) =>
+  useSupplierMutation(({ contactId, body }: { contactId?: string; body: ContactInput }) =>
+    contactId
+      ? api<void>(`/api/suppliers/${id}/contacts/${contactId}`, { method: 'PUT', body })
+      : api<{ id: string }>(`/api/suppliers/${id}/contacts`, { method: 'POST', body }).then(() => undefined))
+
+export const useRemoveContact = (id: string) =>
+  useSupplierMutation((contactId: string) => api<void>(`/api/suppliers/${id}/contacts/${contactId}`, { method: 'DELETE' }))
+
+export const useSaveAddress = (id: string) =>
+  useSupplierMutation(({ addressId, body }: { addressId?: string; body: AddressInput }) =>
+    addressId
+      ? api<void>(`/api/suppliers/${id}/addresses/${addressId}`, { method: 'PUT', body })
+      : api<{ id: string }>(`/api/suppliers/${id}/addresses`, { method: 'POST', body }).then(() => undefined))
+
+export const useRemoveAddress = (id: string) =>
+  useSupplierMutation((addressId: string) => api<void>(`/api/suppliers/${id}/addresses/${addressId}`, { method: 'DELETE' }))

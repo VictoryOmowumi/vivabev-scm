@@ -10,6 +10,13 @@ public sealed class SupplierAddress : AuditableEntity
         string city, string state, string countryCode)
     {
         SupplierId = supplierId;
+        Update(addressType, line1, line2, city, state, countryCode);
+    }
+
+    internal void Update(AddressType addressType, string line1, string? line2, string city, string state, string countryCode)
+    {
+        if (line2?.Trim().Length > 200)
+            throw new DomainException("Keep address line 2 under 200 characters.");
         AddressType = addressType;
         Line1 = Guard.Required(line1, nameof(line1), 200);
         Line2 = string.IsNullOrWhiteSpace(line2) ? null : line2.Trim();

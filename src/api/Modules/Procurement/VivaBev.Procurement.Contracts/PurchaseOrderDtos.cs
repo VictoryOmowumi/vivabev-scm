@@ -8,6 +8,9 @@ public sealed record UpdatePurchaseOrderDeliveryRequest(Guid DeliverToSiteId, Da
 
 public sealed record PurchaseOrderReasonRequest(string Reason);
 
+/// <summary>Cancel an order. For an issued one, say whether its requisitions go back for sourcing or are cancelled too.</summary>
+public sealed record CancelPurchaseOrderRequest(string Reason, bool ReturnRequisitionsToSourcing = true);
+
 // ---- responses ----
 
 public sealed record PurchaseOrderSummaryDto(
@@ -44,4 +47,6 @@ public sealed record PurchaseOrderDetailDto(
     DateTime? IssuedAt,
     string? CancellationReason,
     decimal Total,
-    IReadOnlyList<PurchaseOrderLineDto> Lines);
+    IReadOnlyList<PurchaseOrderLineDto> Lines,
+    string? ClosedByName = null,
+    DateTime? ClosedAt = null);

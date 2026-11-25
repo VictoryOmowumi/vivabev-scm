@@ -3,13 +3,14 @@ import { api } from '@/lib/api-client'
 import { requisitionKeys } from '@/features/requisitions/requisitions-api'
 import { sourcingKeys } from '@/features/sourcing/sourcing-api'
 
-export type PurchaseOrderStatus = 'Draft' | 'Issued' | 'PartiallyReceived' | 'Received' | 'Cancelled'
+export type PurchaseOrderStatus = 'Draft' | 'Issued' | 'PartiallyReceived' | 'Received' | 'Closed' | 'Cancelled'
 
 export const orderStatusLabels: Record<PurchaseOrderStatus, string> = {
   Draft: 'Draft',
   Issued: 'Issued',
   PartiallyReceived: 'Part received',
   Received: 'Received',
+  Closed: 'Closed short',
   Cancelled: 'Cancelled',
 }
 
@@ -70,9 +71,11 @@ export type PurchaseOrderDetail = {
   notes: string | null
   currencyCode: string
   issuedAt: string | null
-  cancellationReason: string | null
+  cancellationReason: string | null // why it was cancelled or closed
   total: number
   lines: PurchaseOrderLine[]
+  closedByName: string | null
+  closedAt: string | null
 }
 
 export const orderKeys = {
@@ -118,4 +121,8 @@ export const useUpdateDelivery = (id: string) =>
 export const useIssueOrder = (id: string) => useOrderMutation(() => api<void>(`${base(id)}/issue`, { method: 'POST' }))
 
 export const useCancelOrder = (id: string) =>
-  useOrderMutation((reason: string) => api<void>(`${base(id)}/cancel`, { method: 'POST', body: { reason } }))
+  useOrderMutation(({ reason, returnRequisitionsToSourcing = true }: { reason: string; returnRequisitionsToSourcing?: boolean }) =>
+    api<void>(`${base(id)}/cancel`, { method: 'POST', body: { reason, returnRequisitionsToSourcing } }))
+
+export const useCloseOrder = (id: string) =>
+  useOrderMutation((reason: string) => api<void>(`${base(id)}/close`, { method: 'POST', body: { reason } }))

@@ -23,7 +23,7 @@ internal sealed class PurchaseOrderReceiving(ProcurementDbContext db) : IPurchas
         var orders = await db.PurchaseOrders.AsNoTracking()
             .Include(p => p.Lines)
             .Where(p => p.Status == PurchaseOrderStatus.Issued || p.Status == PurchaseOrderStatus.PartiallyReceived
-                        || p.Status == PurchaseOrderStatus.Received)
+                        || p.Status == PurchaseOrderStatus.Received || p.Status == PurchaseOrderStatus.Closed)
             .OrderByDescending(p => p.Number)
             .Take(200)
             .ToListAsync(ct);

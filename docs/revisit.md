@@ -27,24 +27,6 @@ EF only bumps a row's RowVersion when that row changes. Recording a quotation in
 
 **When to revisit:** if several buyers share RFQs. Add a filtered unique index on `quotations (sourcing_event_id, supplier_id) WHERE status = 'Received'`, or touch a `LastChangedAt` column on the event in every command so its RowVersion always moves.
 
-## Award approvals don't stop someone approving their own recommendation (Approvals)
-
-The award policy's first step is "any Procurement manager". If a Procurement manager runs an RFQ and recommends the award, the chain resolves that step to them. The same can happen to a department manager raising their own requisition.
-
-**When to revisit:** before real use. In `ApprovalService.StartAsync`, when a step resolves to the requester, escalate to the requester's manager (or the next person in the role).
-
-## Issued purchase orders can't be cancelled (Procurement)
-
-A draft order can be cancelled, but an issued one can't yet. Cancelling an issued order means telling the supplier, releasing the order's budget commitment, and deciding what happens to its requisitions (back to sourcing, or cancelled).
-
-**When to revisit:** with goods receipt. An order with nothing received can be cancelled; one that is partly received is closed short instead.
-
-## Supplier contacts and addresses can't be edited in the app (Suppliers)
-
-A supplier gets one contact when it's created. There are no endpoints yet to add, change or remove contacts and addresses, so the supplier page only displays them.
-
-**When to revisit:** before suppliers are onboarded for real. Add the endpoints, plus an edit panel on the supplier page.
-
 ## Two issues of the same item at the same moment can overdraw stock (Inventory)
 
 Issuing checks the item's on-hand figure and then adds a negative movement. Two storekeepers issuing the last units at the same moment can both pass the check, leaving stock below zero.
@@ -64,3 +46,16 @@ A request goes straight to the warehouse. The stock was approved when it was bou
 The budget is consumed when the purchase is invoiced, against the cost centre that bought it. A request records the cost centre it's for, but nothing moves between budgets when stock is issued.
 
 **When to revisit:** if a central store buys for everyone and departments should carry their own usage. Post the issue value (at average cost) from the store's cost centre to the requester's.
+
+## Cancelling an order doesn't notify the supplier (Procurement)
+
+Cancelling or closing an issued order short records the reason and fixes the budget, but nobody tells the supplier. The buyer still has to email them.
+
+**When to revisit:** with notifications. Email the supplier's primary contact a cancellation notice quoting the order number and reason.
+
+## Supplier changes aren't audited field by field (Suppliers)
+
+Contacts, addresses and payment terms can be edited by anyone with the manage permission. Each row records who last changed it (`ModifiedBy`), but not the old values.
+
+**When to revisit:** before bank details are added to suppliers, where a changed account number is a classic fraud route. Keep a change log of old and new values, and require a second person to approve bank detail changes.
+
