@@ -17,6 +17,12 @@ public interface IBudgets
 
     /// <summary>Releases a document's open commitments (in every budget), if it has any.</summary>
     Task ReleaseAsync(string documentType, Guid documentId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Takes an amount off a document's open commitment on one budget (a purchase order closed short gives back
+    /// what won't arrive). Releases it if nothing is left; does nothing if there's no open commitment.
+    /// </summary>
+    Task ReduceAsync(BudgetCommitmentRequest request, CancellationToken ct = default);
 }
 
 // ---- API shapes ----

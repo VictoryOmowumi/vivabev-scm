@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 import { OrderStatusBadge } from './order-status-badge'
 import { orderStatusLabels, usePurchaseOrders, type PurchaseOrderStatus } from './purchase-orders-api'
 
-const tabs: (PurchaseOrderStatus | 'all')[] = ['all', 'Draft', 'Issued', 'PartiallyReceived', 'Received', 'Cancelled']
+const tabs: (PurchaseOrderStatus | 'all')[] = ['all', 'Draft', 'Issued', 'PartiallyReceived', 'Received', 'Closed', 'Cancelled']
 const columns = ['Order', 'Supplier', 'From', 'Expected delivery', 'Total', 'Status']
 
 export function PurchaseOrdersPage() {
@@ -29,8 +29,8 @@ export function PurchaseOrdersPage() {
   const rows = useMemo(() => (orders.data ?? []).filter((o) => tab === 'all' || o.status === tab), [orders.data, tab])
   const countOf = (t: PurchaseOrderStatus | 'all') => (orders.data ?? []).filter((o) => t === 'all' || o.status === t).length
 
-  // Awarded RFQs with no live order yet
-  const ordered = new Set((orders.data ?? []).filter((o) => o.status !== 'Cancelled').map((o) => o.sourcingEventId))
+  // Awarded RFQs with no live order yet. Once an issued order is cancelled its requisitions have moved on, so its RFQ is done too
+  const ordered = new Set((orders.data ?? []).filter((o) => o.status !== 'Cancelled' || o.issuedAt !== null).map((o) => o.sourcingEventId))
   const toOrder = manage && orders.data ? (rfqs.data ?? []).filter((e) => e.status === 'Awarded' && !ordered.has(e.id)) : []
 
   return (
@@ -88,7 +88,7 @@ export function PurchaseOrdersPage() {
               <tbody>
                 {rows.map((o) => (
                   <tr key={o.id} onClick={() => navigate(`/purchase-orders/${o.id}`)}
-                    className={cn('cursor-pointer border-t hover:bg-accent', o.status === 'Cancelled' && 'text-muted-foreground')}>
+                    className={cn('cursor-pointer border-t hover:bg-accent', (o.status === 'Cancelled' || o.status === 'Closed') && 'text-muted-foreground')}>
                     <td className="p-3">
                       <Link to={`/purchase-orders/${o.id}`} onClick={(ev) => ev.stopPropagation()} className="font-semibold hover:text-brand">{o.number}</Link>
                       <div className="text-xs text-muted-foreground">{o.lineCount} line{o.lineCount === 1 ? '' : 's'}{o.issuedAt && ` · issued ${formatDate(o.issuedAt.slice(0, 10))}`}</div>

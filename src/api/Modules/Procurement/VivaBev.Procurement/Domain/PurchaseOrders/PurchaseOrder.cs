@@ -8,7 +8,8 @@ public enum PurchaseOrderStatus
     Issued,            // sent to the supplier; requisitions are Ordered and the budget holds the real amount
     PartiallyReceived, // the warehouse has received some of it
     Received,          // everything ordered has been received
-    Cancelled          // a draft that was dropped
+    Closed,            // partly received, and the rest won't come
+    Cancelled          // dropped: a draft, or an issued order before anything arrived
 }
 
 /// <summary>
@@ -62,7 +63,9 @@ public sealed class PurchaseOrder : AggregateRoot
     public string CurrencyCode { get; private set; } = null!;
     public PurchaseOrderStatus Status { get; private set; }
     public DateTime? IssuedAt { get; private set; }
-    public string? CancellationReason { get; private set; }
+    public string? CancellationReason { get; private set; } // why it was cancelled or closed
+    public Guid? ClosedBy { get; private set; }               // who cancelled or closed it
+    public DateTime? ClosedAt { get; private set; }
 
     public IReadOnlyCollection<PurchaseOrderLine> Lines => _lines.AsReadOnly();
 
@@ -110,19 +113,45 @@ public sealed class PurchaseOrder : AggregateRoot
         Status = _lines.All(l => l.Outstanding == 0) ? PurchaseOrderStatus.Received : PurchaseOrderStatus.PartiallyReceived;
     }
 
-    public void Cancel(string reason)
+    /// <summary>
+    /// Drop a draft, or an issued order before anything has arrived (the supplier can't deliver, say).
+    /// Once goods have arrived it can only be closed short.
+    /// </summary>
+    public void Cancel(string reason, Guid by, DateTime now)
     {
-        EnsureDraft("cancel");
+        if (Status == PurchaseOrderStatus.PartiallyReceived)
+            throw new DomainException("Some of this order has arrived. Close it short instead of cancelling it.");
+        if (Status is not (PurchaseOrderStatus.Draft or PurchaseOrderStatus.Issued))
+            throw new DomainException($"Cannot cancel a purchase order that is {Status}.");
+        End(PurchaseOrderStatus.Cancelled, reason, by, now);
+    }
+
+    /// <summary>Stop waiting for the rest of a partly received order. What arrived stays received and billable.</summary>
+    public void CloseShort(string reason, Guid by, DateTime now)
+    {
+        if (Status != PurchaseOrderStatus.PartiallyReceived)
+            throw new DomainException(Status == PurchaseOrderStatus.Issued
+                ? "Nothing has arrived on this order yet. Cancel it instead."
+                : $"Only a partly received order can be closed short; this one is {Status}.");
+        End(PurchaseOrderStatus.Closed, reason, by, now);
+    }
+
+    /// <summary>The value not yet received, per line: what closing short or cancelling takes off the budget.</summary>
+    public IEnumerable<(PurchaseOrderLine Line, decimal Value)> OutstandingValue() =>
+        _lines.Where(l => l.Outstanding > 0).Select(l => (l, decimal.Round(l.Outstanding * l.UnitPrice, 2)));
+
+    private void End(PurchaseOrderStatus status, string reason, Guid by, DateTime now)
+    {
         CancellationReason = Guard.Required(reason, nameof(reason), 500);
-        Status = PurchaseOrderStatus.Cancelled;
+        Status = status;
+        ClosedBy = by;
+        ClosedAt = now;
     }
 
     private void EnsureDraft(string action)
     {
         if (Status != PurchaseOrderStatus.Draft)
-            throw new DomainException(Status == PurchaseOrderStatus.Issued && action == "cancel"
-                ? "This order has been issued to the supplier. Cancelling issued orders comes with goods receipt."
-                : $"Cannot {action} a purchase order that is {Status}.");
+            throw new DomainException($"Cannot {action} a purchase order that is {Status}.");
     }
 }
 

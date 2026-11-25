@@ -1,5 +1,12 @@
 namespace VivaBev.Finance.Contracts;
 
+/// <summary>What other modules may ask about supplier invoices.</summary>
+public interface IInvoiceQueries
+{
+    /// <summary>Whether any invoice against the order is still live (not rejected).</summary>
+    Task<bool> HasLiveInvoicesAsync(Guid purchaseOrderId, CancellationToken ct = default);
+}
+
 // ---- requests ----
 
 public sealed record InvoiceLineRequest(Guid PurchaseOrderLineId, decimal Quantity, decimal UnitPrice);

@@ -19,7 +19,7 @@ import { InvoiceStatusBadge } from '@/features/invoices/invoice-status-badge'
 import { useInvoices } from '@/features/invoices/invoices-api'
 import { useReceipts } from '@/features/warehouse/warehouse-api'
 import { OrderStatusBadge } from './order-status-badge'
-import { useCancelOrder, useIssueOrder, usePurchaseOrder, useUpdateDelivery, type PurchaseOrderDetail } from './purchase-orders-api'
+import { useCancelOrder, useCloseOrder, useIssueOrder, usePurchaseOrder, useUpdateDelivery, type PurchaseOrderDetail } from './purchase-orders-api'
 
 export function PurchaseOrderPage() {
   const { id } = useParams()
@@ -67,14 +67,19 @@ export function PurchaseOrderPage() {
         )}
       </section>
 
-      {po.status === 'Cancelled' && (
+      {(po.status === 'Cancelled' || po.status === 'Closed') && (
         <div role="status" className="rounded-2xl bg-cancelled px-5 py-4 text-sm text-cancelled-foreground print:hidden">
-          <strong>Cancelled:</strong> {po.cancellationReason} The RFQ is still awarded, so a new order can be raised from it.
+          <strong>{po.status === 'Closed' ? 'Closed short' : 'Cancelled'}</strong>
+          {po.closedByName && ` by ${po.closedByName}${po.closedAt ? `, ${formatDateTime(po.closedAt)}` : ''}`}: {po.cancellationReason}{' '}
+          {po.status === 'Closed'
+            ? 'What arrived can still be invoiced; the rest was taken off the budget.'
+            : po.issuedAt ? 'Its budget was released.' : 'The RFQ is still awarded, so a new order can be raised from it.'}
         </div>
       )}
 
       {manage && po.status === 'Draft' && <DraftActions po={po} />}
-      {(po.status === 'PartiallyReceived' || po.status === 'Received') && can(user, Permission.InventoryView) && <Receipts po={po} />}
+      {manage && (po.status === 'Issued' || po.status === 'PartiallyReceived') && <IssuedActions po={po} />}
+      {(po.status === 'PartiallyReceived' || po.status === 'Received' || po.status === 'Closed') && can(user, Permission.InventoryView) && <Receipts po={po} />}
       {po.status !== 'Draft' && po.status !== 'Cancelled' && can(user, Permission.InvoicesView) && (
         <Invoices po={po} canRecord={can(user, Permission.InvoicesManage)} />
       )}
@@ -138,7 +143,7 @@ function DraftActions({ po }: { po: PurchaseOrderDetail }) {
           <div className="flex justify-end gap-2">
             <Button size="pill-sm" variant="ghost" onClick={() => setCancelling(false)}>Keep it</Button>
             <Button size="pill-sm" variant="destructive" disabled={!reason.trim() || cancel.isPending}
-              onClick={() => run(() => cancel.mutateAsync(reason.trim()), `${po.number} cancelled`)}>
+              onClick={() => run(() => cancel.mutateAsync({ reason: reason.trim() }), `${po.number} cancelled`)}>
               {cancel.isPending ? 'Cancelling…' : 'Cancel draft'}
             </Button>
           </div>
@@ -169,15 +174,84 @@ function DraftActions({ po }: { po: PurchaseOrderDetail }) {
   )
 }
 
+/**
+ * After issue: cancel while nothing has arrived (the requisitions go back for sourcing, or are cancelled too),
+ * or close short once part has arrived.
+ */
+function IssuedActions({ po }: { po: PurchaseOrderDetail }) {
+  const cancel = useCancelOrder(po.id)
+  const close = useCloseOrder(po.id)
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState('')
+  const [resource, setResource] = useState(true)
+  const closing = po.status === 'PartiallyReceived'
+  const outstanding = po.lines.reduce((s, l) => s + Math.max(l.quantity - l.quantityReceived, 0) * l.unitPrice, 0)
+  const requisitions = [...new Set(po.lines.map((l) => l.requisitionNumber))]
+  const pending = cancel.isPending || close.isPending
+  const error = cancel.error ?? close.error
+
+  const submit = () => {
+    const done = { onSuccess: () => { toast(closing ? `${po.number} closed short` : `${po.number} cancelled`); setOpen(false) } }
+    if (closing) close.mutate(reason.trim(), done)
+    else cancel.mutate({ reason: reason.trim(), returnRequisitionsToSourcing: resource }, done)
+  }
+
+  if (!open) {
+    return (
+      <div className="flex justify-end print:hidden">
+        <Button size="pill-sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setOpen(true)}>
+          {closing ? 'Close short…' : 'Cancel order…'}
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <Panel className="flex flex-col gap-3 px-6 py-5 print:hidden">
+      <div>
+        <h2 className="text-xl font-normal">{closing ? `Close ${po.number} short` : `Cancel ${po.number}`}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {closing
+            ? `Stop waiting for what hasn't arrived. ${formatNaira(outstanding)} comes off the budget; what arrived stays received and can still be invoiced.`
+            : `Nothing has arrived yet. Tell ${po.supplier.name} the order is withdrawn; ${formatNaira(po.total)} goes back to the budget.`}
+        </p>
+      </div>
+      {!closing && (
+        <fieldset className="flex flex-col gap-2 text-sm">
+          <legend className="mb-1 text-[13px] font-semibold">What happens to {requisitions.join(', ')}?</legend>
+          <label className="flex items-start gap-2.5">
+            <input type="radio" name="po-reqs" checked={resource} onChange={() => setResource(true)} className="mt-1 accent-brand" />
+            <span><strong className="font-semibold">Source again.</strong> <span className="text-muted-foreground">Back to Approved, waiting for a new RFQ; their estimates are committed to the budget again.</span></span>
+          </label>
+          <label className="flex items-start gap-2.5">
+            <input type="radio" name="po-reqs" checked={!resource} onChange={() => setResource(false)} className="mt-1 accent-brand" />
+            <span><strong className="font-semibold">Cancel them too.</strong> <span className="text-muted-foreground">The need has gone; nothing stays on the budget.</span></span>
+          </label>
+        </fieldset>
+      )}
+      <label htmlFor="po-end-reason" className="text-[13px] font-semibold">{closing ? 'Why won\'t the rest come?' : 'Why cancel it?'}</label>
+      <textarea id="po-end-reason" rows={2} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} className={cn(fieldClass, 'h-auto py-2.5')}
+        placeholder={closing ? 'e.g. Supplier discontinued the model; the third laptop will be sourced separately' : 'e.g. Supplier can no longer deliver before the launch'} />
+      {error && <p role="alert" className="rounded-xl bg-destructive/10 px-3.5 py-3 text-[13px] text-destructive">{problemMessage(error)}</p>}
+      <div className="flex justify-end gap-2">
+        <Button size="pill-sm" variant="ghost" onClick={() => setOpen(false)}>Keep it</Button>
+        <Button size="pill-sm" variant="destructive" disabled={!reason.trim() || pending} onClick={submit}>
+          {pending ? 'Saving…' : closing ? 'Close short' : 'Cancel order'}
+        </Button>
+      </div>
+    </Panel>
+  )
+}
+
 /** The order as the supplier sees it. This is the part that prints. */
 function OrderDocument({ po }: { po: PurchaseOrderDetail }) {
-  const receiving = po.status === 'PartiallyReceived' || po.status === 'Received'
+  const receiving = po.status === 'PartiallyReceived' || po.status === 'Received' || po.status === 'Closed'
   return (
     <article aria-label={`Purchase order ${po.number}`}
       className="flex flex-col gap-7 rounded-[28px] bg-surface p-8 shadow-sm print:rounded-none print:bg-white print:p-0 print:shadow-none print:text-black">
-      {(po.status === 'Draft' || po.status === 'Cancelled') && (
+      {(po.status === 'Draft' || po.status === 'Cancelled' || po.status === 'Closed') && (
         <p className="self-start rounded-full bg-draft px-3 py-1 text-xs font-bold text-draft-foreground">
-          {po.status === 'Draft' ? 'Draft: not yet sent to the supplier' : 'Cancelled: not valid'}
+          {po.status === 'Draft' ? 'Draft: not yet sent to the supplier' : po.status === 'Closed' ? 'Closed short: nothing more to deliver' : 'Cancelled: not valid'}
         </p>
       )}
       <header className="flex flex-wrap items-start justify-between gap-6 border-b pb-6">

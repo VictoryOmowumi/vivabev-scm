@@ -69,6 +69,18 @@ public sealed class Budget : AggregateRoot
         return consumed;
     }
 
+    /// <summary>Gives part of a document's open commitment back. Returns false if it had none.</summary>
+    public bool Reduce(string documentType, Guid documentId, decimal amount, DateTime now)
+    {
+        if (amount <= 0)
+            throw new DomainException("The amount to give back must be greater than zero.");
+
+        var commitment = _commitments.SingleOrDefault(c =>
+            c.DocumentType == documentType && c.DocumentId == documentId && c.Status == CommitmentStatus.Open);
+        commitment?.Reduce(amount, now);
+        return commitment is not null;
+    }
+
     /// <summary>Releases the document's open commitment. Returns false if it had none.</summary>
     public bool Release(string documentType, Guid documentId, DateTime now)
     {

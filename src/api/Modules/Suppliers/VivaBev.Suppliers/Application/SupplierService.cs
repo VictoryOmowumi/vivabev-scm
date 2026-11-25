@@ -64,6 +64,47 @@ internal sealed class SupplierService(
     public Task RevokeCategoryAsync(Guid id, Guid categoryId, CancellationToken ct) =>
         UpdateAsync(id, s => s.RevokeCategory(categoryId), ct);
 
+    // ---- details, contacts and addresses ----
+
+    public Task UpdateDetailsAsync(Guid id, UpdateSupplierDetailsRequest request, CancellationToken ct) =>
+        UpdateAsync(id, s => s.UpdateDetails(request.TradingName, request.PaymentTermsDays), ct);
+
+    public async Task<Guid> AddContactAsync(Guid id, SupplierContactRequest request, CancellationToken ct)
+    {
+        var supplier = await LoadAsync(id, ct);
+        var contact = supplier.AddContact(request.Name, request.Email, request.Phone, request.Role, request.IsPrimary);
+        await db.SaveChangesAsync(ct);
+        return contact.Id;
+    }
+
+    public Task UpdateContactAsync(Guid id, Guid contactId, SupplierContactRequest request, CancellationToken ct) =>
+        UpdateAsync(id, s => s.UpdateContact(contactId, request.Name, request.Email, request.Phone, request.Role,
+            request.IsPrimary), ct);
+
+    public Task RemoveContactAsync(Guid id, Guid contactId, CancellationToken ct) =>
+        UpdateAsync(id, s => s.RemoveContact(contactId), ct);
+
+    public async Task<Guid> AddAddressAsync(Guid id, SupplierAddressRequest request, CancellationToken ct)
+    {
+        var supplier = await LoadAsync(id, ct);
+        var address = supplier.AddAddress(ParseType(request.AddressType), request.Line1, request.City, request.State,
+            request.CountryCode, request.Line2);
+        await db.SaveChangesAsync(ct);
+        return address.Id;
+    }
+
+    public Task UpdateAddressAsync(Guid id, Guid addressId, SupplierAddressRequest request, CancellationToken ct) =>
+        UpdateAsync(id, s => s.UpdateAddress(addressId, ParseType(request.AddressType), request.Line1, request.Line2,
+            request.City, request.State, request.CountryCode), ct);
+
+    public Task RemoveAddressAsync(Guid id, Guid addressId, CancellationToken ct) =>
+        UpdateAsync(id, s => s.RemoveAddress(addressId), ct);
+
+    private static AddressType ParseType(string value) =>
+        Enum.TryParse<AddressType>(value, ignoreCase: true, out var type)
+            ? type
+            : throw new DomainException("Address type must be Billing or Shipping.");
+
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
     private async Task UpdateAsync(Guid id, Action<Supplier> change, CancellationToken ct)

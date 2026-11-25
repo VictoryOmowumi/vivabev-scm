@@ -44,9 +44,10 @@ internal sealed class ApprovalService(
         var approvers = new List<(string Name, Guid ApproverId)>();
         foreach (var step in policy)
         {
-            var approverId = await ResolveAsync(step, requester, ct)
-                ?? throw new DomainException($"No approver found for '{step.Name}'. Ask an administrator to assign one.");
-            approvers.Add((step.Name, approverId));
+            var (approverId, escalated) = await ResolveAsync(step, requester, ct);
+            if (approverId is null)
+                throw new DomainException($"No approver found for '{step.Name}'. Ask an administrator to assign one.");
+            approvers.Add((escalated ? $"{step.Name} (escalated)" : step.Name, approverId.Value));
         }
 
         db.Requests.Add(new ApprovalRequest(subject.DocumentType, subject.DocumentId, subject.DocumentNumber,
@@ -123,21 +124,37 @@ internal sealed class ApprovalService(
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
 
-    private async Task<Guid?> ResolveAsync(ApprovalPolicyStep step, UserSummaryDto requester, CancellationToken ct)
+    /// <summary>
+    /// Who approves a step. Nobody approves their own document: when a role step would land on the requester
+    /// (a Procurement manager recommending their own award, a head of department raising their own requisition),
+    /// it goes to someone else in the role, or else up to the requester's manager.
+    /// </summary>
+    private async Task<(Guid? ApproverId, bool Escalated)> ResolveAsync(ApprovalPolicyStep step, UserSummaryDto requester,
+        CancellationToken ct)
     {
+        IReadOnlyList<UserSummaryDto> candidates;
         switch (step.Rule)
         {
             case ApproverRule.RequesterManager:
-                return requester.ManagerId;
+                return (requester.ManagerId, false);
             case ApproverRule.DepartmentRole:
-                var inDepartment = await users.GetUsersInRoleAsync(step.RoleName!, requester.DepartmentId, ct);
-                return inDepartment.FirstOrDefault()?.Id;
+                candidates = await users.GetUsersInRoleAsync(step.RoleName!, requester.DepartmentId, ct);
+                break;
             case ApproverRule.Role:
-                var anywhere = await users.GetUsersInRoleAsync(step.RoleName!, null, ct);
-                return anywhere.FirstOrDefault()?.Id;
+                candidates = await users.GetUsersInRoleAsync(step.RoleName!, null, ct);
+                break;
             default:
-                return null;
+                return (null, false);
         }
+
+        var someoneElse = candidates.FirstOrDefault(u => u.Id != requester.Id && u.IsActive);
+        if (someoneElse is not null)
+            return (someoneElse.Id, false);
+
+        // The requester is the only one in the role: escalate, or report no approver if the role is empty
+        return candidates.Any(u => u.Id == requester.Id) && requester.ManagerId is { } manager
+            ? (manager, true)
+            : (null, false);
     }
 
     private async Task<(ApprovalRequest Request, Guid Me)> LoadForDecisionAsync(Guid requestId, CancellationToken ct)

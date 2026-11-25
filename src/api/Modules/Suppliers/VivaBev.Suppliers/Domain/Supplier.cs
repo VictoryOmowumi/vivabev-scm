@@ -54,6 +54,16 @@ public sealed class Supplier : AggregateRoot
         PaymentTermsDays = days;
     }
 
+    /// <summary>Trading name and payment terms. The legal name and tax ID are fixed once a supplier is created.</summary>
+    public void UpdateDetails(string? tradingName, int paymentTermsDays)
+    {
+        EnsureNotBlocked();
+        if (tradingName?.Trim().Length > 200)
+            throw new DomainException("Keep the trading name under 200 characters.");
+        TradingName = string.IsNullOrWhiteSpace(tradingName) ? null : tradingName.Trim();
+        SetPaymentTerms(paymentTermsDays);
+    }
+
     public SupplierContact AddContact(string name, string email, string? phone = null, string? role = null,
         bool isPrimary = false)
     {
@@ -68,6 +78,30 @@ public sealed class Supplier : AggregateRoot
         return contact;
     }
 
+    public void UpdateContact(Guid contactId, string name, string email, string? phone, string? role, bool isPrimary)
+    {
+        EnsureNotBlocked();
+        var contact = FindContact(contactId);
+        contact.Update(name, email, phone, role);
+        if (isPrimary)
+            MakePrimary(contact);
+        else if (contact.IsPrimary)
+            throw new DomainException("A supplier needs a primary contact. Make someone else primary instead.");
+    }
+
+    /// <summary>Remove a contact. The last one can't go; if the primary goes, the next contact becomes primary.</summary>
+    public void RemoveContact(Guid contactId)
+    {
+        EnsureNotBlocked();
+        var contact = FindContact(contactId);
+        if (_contacts.Count == 1)
+            throw new DomainException("A supplier needs at least one contact. Add another before removing this one.");
+
+        _contacts.Remove(contact);
+        if (contact.IsPrimary)
+            _contacts.OrderBy(c => c.Name).First().MakePrimary();
+    }
+
     public SupplierAddress AddAddress(AddressType addressType, string line1, string city, string state,
         string countryCode = "NG", string? line2 = null)
     {
@@ -76,6 +110,31 @@ public sealed class Supplier : AggregateRoot
         _addresses.Add(address);
         return address;
     }
+
+    public void UpdateAddress(Guid addressId, AddressType addressType, string line1, string? line2, string city,
+        string state, string countryCode)
+    {
+        EnsureNotBlocked();
+        FindAddress(addressId).Update(addressType, line1, line2, city, state, countryCode);
+    }
+
+    public void RemoveAddress(Guid addressId)
+    {
+        EnsureNotBlocked();
+        _addresses.Remove(FindAddress(addressId));
+    }
+
+    private void MakePrimary(SupplierContact contact)
+    {
+        _contacts.ForEach(c => c.ClearPrimary());
+        contact.MakePrimary();
+    }
+
+    private SupplierContact FindContact(Guid contactId) =>
+        _contacts.SingleOrDefault(c => c.Id == contactId) ?? throw new DomainException("That contact is not on this supplier.");
+
+    private SupplierAddress FindAddress(Guid addressId) =>
+        _addresses.SingleOrDefault(a => a.Id == addressId) ?? throw new DomainException("That address is not on this supplier.");
 
     // ---- categories ----
 

@@ -46,3 +46,11 @@ public sealed record CreateSupplierRequest(
 public sealed record RequestCategoryRequest(Guid CategoryId);
 
 public sealed record ReasonRequest(string Reason);
+
+public sealed record UpdateSupplierDetailsRequest(string? TradingName, int PaymentTermsDays);
+
+public sealed record SupplierContactRequest(string Name, string Email, string? Phone, string? Role, bool IsPrimary);
+
+/// <summary>AddressType is Billing or Shipping.</summary>
+public sealed record SupplierAddressRequest(string AddressType, string Line1, string? Line2, string City, string State,
+    string CountryCode = "NG");

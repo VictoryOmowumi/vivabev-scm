@@ -156,6 +156,23 @@ public sealed class Requisition : AggregateRoot
         Status = RequisitionStatus.Ordered;
     }
 
+    /// <summary>Its purchase order was cancelled before anything arrived: it waits for sourcing again.</summary>
+    public void ReturnFromCancelledOrder()
+    {
+        if (Status != RequisitionStatus.Ordered)
+            throw new DomainException($"Only an ordered requisition can go back for sourcing; {Number} is {Status}.");
+        Status = RequisitionStatus.Approved;
+    }
+
+    /// <summary>Its purchase order was cancelled and the need has gone too.</summary>
+    public void CancelWithOrder(string reason)
+    {
+        if (Status != RequisitionStatus.Ordered)
+            throw new DomainException($"{Number} is {Status}, not ordered.");
+        CancellationReason = Guard.Required(reason, nameof(reason), 500);
+        Status = RequisitionStatus.Cancelled;
+    }
+
     public void Cancel(string reason)
     {
         if (Status == RequisitionStatus.Cancelled)

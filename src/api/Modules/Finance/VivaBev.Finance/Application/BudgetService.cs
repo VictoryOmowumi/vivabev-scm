@@ -55,6 +55,16 @@ internal sealed class BudgetService(FinanceDbContext db, IOrganisationQueries or
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task ReduceAsync(BudgetCommitmentRequest request, CancellationToken ct = default)
+    {
+        if (request.Amount <= 0)
+            return;
+
+        var budget = await FindAsync(request.CostCentreId, request.FiscalYear, tracked: true, ct);
+        if (budget is not null && budget.Reduce(request.DocumentType, request.DocumentId, request.Amount, Now))
+            await db.SaveChangesAsync(ct);
+    }
+
     public async Task<Guid> SetBudgetAsync(SetBudgetRequest request, CancellationToken ct)
     {
         _ = await organisation.GetCostCentreAsync(request.CostCentreId, ct)

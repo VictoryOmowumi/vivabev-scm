@@ -49,21 +49,50 @@ public class PurchaseOrderTests
         Assert.Throws<DomainException>(() => po.UpdateDelivery(site, Today.AddDays(30), null, Today));
     }
 
+    private static readonly Guid Buyer = Guid.NewGuid();
+
     [Fact]
-    public void An_issued_order_cannot_be_cancelled_yet()
+    public void An_issued_order_can_be_cancelled_until_something_arrives()
     {
-        var po = Draft();
+        var po = Draft(Line(3, 850_000m));
         po.Issue(Now);
-        Assert.Throws<DomainException>(() => po.Cancel("Supplier went bust"));
+        po.Cancel("Supplier can no longer deliver", Buyer, Now);
+
+        Assert.Equal(PurchaseOrderStatus.Cancelled, po.Status);
+        Assert.Equal(Buyer, po.ClosedBy);
+
+        var partly = Draft(Line(3, 850_000m));
+        partly.Issue(Now);
+        partly.RecordReceipt([(partly.Lines.First().Id, 1m)]);
+        Assert.Throws<DomainException>(() => partly.Cancel("Too late", Buyer, Now));
     }
 
     [Fact]
     public void A_draft_can_be_cancelled_with_a_reason()
     {
         var po = Draft();
-        po.Cancel("Wrong delivery site; raising again");
+        po.Cancel("Wrong delivery site; raising again", Buyer, Now);
         Assert.Equal(PurchaseOrderStatus.Cancelled, po.Status);
         Assert.Throws<DomainException>(() => po.Issue(Now));
+    }
+
+    [Fact]
+    public void Only_a_partly_received_order_can_be_closed_short_and_the_rest_is_valued()
+    {
+        var po = Draft(Line(3, 850_000m), Line(2, 25_000m));
+        Assert.Throws<DomainException>(() => po.CloseShort("x", Buyer, Now)); // draft
+
+        po.Issue(Now);
+        Assert.Throws<DomainException>(() => po.CloseShort("x", Buyer, Now)); // nothing received: cancel instead
+
+        po.RecordReceipt([(po.Lines.First().Id, 2m), (po.Lines.Last().Id, 2m)]);
+        po.CloseShort("Third laptop discontinued", Buyer, Now);
+
+        Assert.Equal(PurchaseOrderStatus.Closed, po.Status);
+        var (line, value) = Assert.Single(po.OutstandingValue());
+        Assert.Equal(1, line.LineNo);
+        Assert.Equal(850_000m, value);
+        Assert.Throws<DomainException>(() => po.RecordReceipt([(line.Id, 1m)]));
     }
 
     [Fact]
@@ -81,6 +110,31 @@ public class PurchaseOrderTests
 
         Assert.Equal(RequisitionStatus.Ordered, requisition.Status);
         Assert.Throws<DomainException>(() => requisition.Cancel("No longer needed"));
+    }
+
+    [Fact]
+    public void When_its_order_is_cancelled_a_requisition_goes_back_for_sourcing_or_is_cancelled()
+    {
+        Requisition Ordered()
+        {
+            var r = new Requisition("REQ-2027-00003", "Laptops", "New analysts", Guid.NewGuid(), Guid.NewGuid(),
+                Guid.NewGuid(), Guid.NewGuid(), Today.AddDays(30), Today);
+            r.AddLine(LineType.Goods, null, null, "Laptop", Guid.NewGuid(), 3, "EA", 850_000m);
+            r.Submit(Now);
+            r.MarkApproved(Now);
+            r.MarkInSourcing();
+            r.MarkOrdered();
+            return r;
+        }
+
+        var back = Ordered();
+        back.ReturnFromCancelledOrder();
+        Assert.Equal(RequisitionStatus.Approved, back.Status);
+        Assert.Throws<DomainException>(back.ReturnFromCancelledOrder);
+
+        var gone = Ordered();
+        gone.CancelWithOrder("Supplier failed; project shelved");
+        Assert.Equal(RequisitionStatus.Cancelled, gone.Status);
     }
 
     [Fact]

@@ -69,4 +69,19 @@ public class BudgetTests
     [Fact]
     public void A_budget_cannot_be_negative() =>
         Assert.Throws<DomainException>(() => NewBudget(-1m));
+
+    [Fact]
+    public void Closing_an_order_short_gives_back_part_of_its_commitment()
+    {
+        var budget = new Budget(Guid.NewGuid(), 2027, 10_000_000m);
+        var po = Guid.NewGuid();
+        budget.Commit("PurchaseOrder", po, "PO-2027-00001", 2_550_000m, Now);
+
+        Assert.True(budget.Reduce("PurchaseOrder", po, 850_000m, Now));
+        Assert.Equal(1_700_000m, budget.Committed);
+
+        Assert.True(budget.Reduce("PurchaseOrder", po, 5_000_000m, Now)); // never below zero; released when empty
+        Assert.Equal(0m, budget.Committed);
+        Assert.False(budget.Reduce("PurchaseOrder", po, 1m, Now));
+    }
 }

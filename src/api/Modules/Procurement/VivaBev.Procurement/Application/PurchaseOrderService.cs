@@ -23,6 +23,7 @@ internal sealed class PurchaseOrderService(
     IDocumentNumberGenerator numbers,
     IOrganisationQueries organisation,
     IBudgets budgets,
+    IInvoiceQueries invoices,
     CrossModuleTransaction transaction,
     ICurrentUser currentUser,
     TimeProvider clock)
@@ -51,6 +52,10 @@ internal sealed class PurchaseOrderService(
         var requisitions = await db.Requisitions.AsNoTracking()
             .Where(r => requisitionIds.Contains(r.Id))
             .ToDictionaryAsync(r => r.Id, ct);
+
+        // After an issued order is cancelled its requisitions go back for sourcing (or are cancelled): start a new RFQ
+        if (requisitions.Values.FirstOrDefault(r => r.Status != RequisitionStatus.InSourcing) is { } movedOn)
+            throw new DomainException($"{movedOn.Number} is no longer waiting on {rfq.Number} (it's {movedOn.Status}). Source it on a new RFQ.");
 
         var lines = rfq.Lines.OrderBy(l => l.LineNo).Select(l =>
         {
@@ -109,13 +114,62 @@ internal sealed class PurchaseOrderService(
                     BudgetDocumentType, order.Id, order.Number, share.Sum(l => l.LineTotal)), ct);
         }, ct);
 
-    /// <summary>Drops a draft. The RFQ stays awarded, so a new order can be raised from it.</summary>
-    public async Task CancelAsync(Guid id, string reason, CancellationToken ct)
-    {
-        var order = await LoadAsync(id, ct);
-        order.Cancel(reason);
-        await db.SaveChangesAsync(ct);
-    }
+    /// <summary>
+    /// Cancels an order. A draft is simply dropped: the RFQ stays awarded, so a new order can be raised from it.
+    /// An issued order (nothing received, no invoices) gives its budget back, and its requisitions either go back
+    /// for sourcing, with their estimates committed again, or are cancelled with it.
+    /// </summary>
+    public Task CancelAsync(Guid id, CancelPurchaseOrderRequest request, CancellationToken ct) =>
+        transaction.RunAsync(async () =>
+        {
+            var order = await LoadAsync(id, ct);
+            var wasIssued = order.Status == PurchaseOrderStatus.Issued;
+            if (wasIssued && await invoices.HasLiveInvoicesAsync(order.Id, ct))
+                throw new DomainException($"Finance has an invoice against {order.Number}. It has to be rejected before the order can be cancelled.");
+
+            order.Cancel(request.Reason, Me(), Now);
+            if (!wasIssued)
+            {
+                await db.SaveChangesAsync(ct);
+                return;
+            }
+
+            var requisitionIds = order.RequisitionIds.ToList();
+            var requisitions = await db.Requisitions.Where(r => requisitionIds.Contains(r.Id)).ToListAsync(ct);
+            foreach (var requisition in requisitions)
+            {
+                if (request.ReturnRequisitionsToSourcing)
+                    requisition.ReturnFromCancelledOrder();
+                else
+                    requisition.CancelWithOrder($"{order.Number} was cancelled: {request.Reason.Trim()}");
+            }
+            await db.SaveChangesAsync(ct);
+
+            await budgets.ReleaseAsync(BudgetDocumentType, order.Id, ct);
+            if (request.ReturnRequisitionsToSourcing)
+                foreach (var requisition in requisitions)
+                    await budgets.CommitAsync(new BudgetCommitmentRequest(requisition.CostCentreId,
+                        requisition.BudgetFiscalYear ?? FiscalCalendar.FiscalYearOf(Now), Requisition.ApprovalDocumentType,
+                        requisition.Id, requisition.Number, requisition.EstimatedTotal), ct);
+        }, ct);
+
+    /// <summary>
+    /// Stops waiting for the rest of a partly received order. The value not received comes off the order's budget
+    /// commitments; what did arrive stays committed until it's invoiced.
+    /// </summary>
+    public Task CloseShortAsync(Guid id, string reason, CancellationToken ct) =>
+        transaction.RunAsync(async () =>
+        {
+            var order = await LoadAsync(id, ct);
+            order.CloseShort(reason, Me(), Now);
+            await db.SaveChangesAsync(ct);
+
+            foreach (var share in order.OutstandingValue().GroupBy(x => new { x.Line.CostCentreId, x.Line.BudgetFiscalYear }))
+                await budgets.ReduceAsync(new BudgetCommitmentRequest(share.Key.CostCentreId, share.Key.BudgetFiscalYear,
+                    BudgetDocumentType, order.Id, order.Number, share.Sum(x => x.Value)), ct);
+        }, ct);
+
+    private Guid Me() => currentUser.UserId ?? throw new ForbiddenException("You must be signed in.");
 
     private DateTime Now => clock.GetUtcNow().UtcDateTime;
     private DateOnly Today => DateOnly.FromDateTime(Now);

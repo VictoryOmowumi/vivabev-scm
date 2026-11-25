@@ -47,6 +47,7 @@ internal static class PurchaseOrderEndpoints
             var party = await suppliers.GetPartyAsync(p.SupplierId, ct);
             var site = await organisation.GetSiteAsync(p.DeliverToSiteId, ct);
             var buyer = await users.GetUserAsync(p.BuyerId, ct);
+            var closer = p.ClosedBy is { } closedBy ? await users.GetUserAsync(closedBy, ct) : null;
             var costCentres = (await organisation.GetCostCentresAsync(ct)).ToDictionary(c => c.Id, c => c.Code);
 
             return Results.Ok(new PurchaseOrderDetailDto(
@@ -65,7 +66,8 @@ internal static class PurchaseOrderEndpoints
                     .Select(l => new PurchaseOrderLineDto(l.Id, l.LineNo, l.RequisitionId, l.RequisitionNumber,
                         costCentres.GetValueOrDefault(l.CostCentreId) ?? "?", l.ItemCode, l.Description, l.Quantity,
                         l.UomCode, l.UnitPrice, l.LineTotal, l.QuantityReceived))
-                    .ToList()));
+                    .ToList(),
+                p.ClosedBy is null ? null : closer?.DisplayName ?? "(unknown user)", p.ClosedAt));
         });
 
         // ---------- commands (buyers only) ----------
@@ -89,10 +91,17 @@ internal static class PurchaseOrderEndpoints
             return Results.NoContent();
         }).RequireAuthorization(Permissions.PurchaseOrders.Manage);
 
-        group.MapPost("/{id:guid}/cancel", async (Guid id, PurchaseOrderReasonRequest request,
+        group.MapPost("/{id:guid}/cancel", async (Guid id, CancelPurchaseOrderRequest request,
             PurchaseOrderService service, CancellationToken ct) =>
         {
-            await service.CancelAsync(id, request.Reason, ct);
+            await service.CancelAsync(id, request, ct);
+            return Results.NoContent();
+        }).RequireAuthorization(Permissions.PurchaseOrders.Manage);
+
+        group.MapPost("/{id:guid}/close", async (Guid id, PurchaseOrderReasonRequest request,
+            PurchaseOrderService service, CancellationToken ct) =>
+        {
+            await service.CloseShortAsync(id, request.Reason, ct);
             return Results.NoContent();
         }).RequireAuthorization(Permissions.PurchaseOrders.Manage);
     }

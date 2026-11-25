@@ -29,7 +29,7 @@ internal sealed class InvoiceService(
         var me = Me();
         var order = await orders.GetOrderAsync(request.PurchaseOrderId, ct)
             ?? throw new NotFoundException($"Purchase order {request.PurchaseOrderId} was not found.");
-        if (order.Status is not ("Issued" or "PartiallyReceived" or "Received"))
+        if (order.Status is not ("Issued" or "PartiallyReceived" or "Received" or "Closed"))
             throw new DomainException($"{order.Number} is {order.Status}; only issued orders can be invoiced.");
 
         var supplierNumber = request.SupplierInvoiceNumber.Trim();

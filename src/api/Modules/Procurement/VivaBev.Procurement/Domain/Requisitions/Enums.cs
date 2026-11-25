@@ -6,7 +6,7 @@ public enum RequisitionStatus
     PendingApproval,
     Approved,
     InSourcing, // on an RFQ; Procurement is collecting quotations
-    Ordered,    // on an issued purchase order
+    Ordered,    // on an issued purchase order (back to Approved if the order is cancelled)
     Cancelled
 }
 
