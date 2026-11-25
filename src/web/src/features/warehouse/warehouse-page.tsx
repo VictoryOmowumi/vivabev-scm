@@ -12,25 +12,36 @@ import { OrderStatusBadge } from '@/features/purchase-orders/order-status-badge'
 import { formatDate, formatDateTime, formatNaira } from '@/lib/format'
 import { can, Permission } from '@/lib/permissions'
 import { cn } from '@/lib/utils'
-import { useDueIn, useReceipts, useStock } from './warehouse-api'
+import { StockCounts } from '@/features/stock/stock-counts'
+import { StockRequestList } from '@/features/stock/stock-requests-page'
+import { isOutstanding, useMovements, useStockRequests } from '@/features/stock/stock-api'
+import { useDueIn, useReceipts, useStock, type StockBalance } from './warehouse-api'
 
 const tabs = [
   { key: 'due', label: 'Due in' },
   { key: 'receipts', label: 'Received' },
+  { key: 'requests', label: 'Stock requests' },
   { key: 'stock', label: 'Stock on hand' },
+  { key: 'counts', label: 'Counts' },
 ] as const
 type Tab = (typeof tabs)[number]['key']
 
 export function WarehousePage() {
   const [params, setParams] = useSearchParams()
   const tab = (params.get('tab') ?? 'due') as Tab
+  const { data: user } = useCurrentUser()
   const due = useDueIn()
+  const requests = useStockRequests()
+  const waiting = requests.data?.filter((r) => isOutstanding(r.status)).length
 
   return (
     <div className="flex flex-col gap-6">
-      <section>
-        <h1 className="text-[40px] leading-tight font-light tracking-tight">Warehouse</h1>
-        <p className="mt-2 text-[15px] text-muted-foreground">Receive deliveries against purchase orders and see what's in stock</p>
+      <section className="flex flex-wrap items-end justify-between gap-5">
+        <div>
+          <h1 className="text-[40px] leading-tight font-light tracking-tight">Warehouse</h1>
+          <p className="mt-2 text-[15px] text-muted-foreground">Receive deliveries, issue stock to departments and keep the count honest</p>
+        </div>
+        {can(user, Permission.StockRequest) && <Button asChild size="pill" variant="outline"><Link to="/stock-requests/new">Request stock</Link></Button>}
       </section>
 
       <div role="tablist" aria-label="Warehouse" className="flex flex-wrap gap-2">
@@ -38,14 +49,16 @@ export function WarehousePage() {
           <button key={t.key} role="tab" aria-selected={t.key === tab} onClick={() => setParams(t.key === 'due' ? {} : { tab: t.key }, { replace: true })}
             className={cn('rounded-full border px-4 py-2 text-[13px]',
               t.key === tab ? 'border-[1.5px] border-foreground bg-surface font-semibold' : 'border-input hover:bg-accent')}>
-            {t.label}{t.key === 'due' && due.data ? ` · ${due.data.length}` : ''}
+            {t.label}{t.key === 'due' && due.data ? ` · ${due.data.length}` : ''}{t.key === 'requests' && waiting ? ` · ${waiting}` : ''}
           </button>
         ))}
       </div>
 
       {tab === 'due' && <DueIn />}
       {tab === 'receipts' && <ReceiptList />}
+      {tab === 'requests' && <StockRequestList />}
       {tab === 'stock' && <Stock />}
+      {tab === 'counts' && <StockCounts />}
     </div>
   )
 }
@@ -179,20 +192,51 @@ function Stock() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((s) => (
-                <tr key={`${s.siteId}:${s.itemId}`} className="border-t">
-                  <td className="p-3"><div className="font-semibold">{s.description}</div><div className="text-xs text-muted-foreground">{s.itemCode}</div></td>
-                  <td className="p-3">{s.siteCode}</td>
-                  <td className="p-3 text-right font-semibold">{s.onHand.toLocaleString('en-NG')} {s.uomCode}</td>
-                  <td className="p-3 text-right">{formatNaira(s.averageCost)}</td>
-                  <td className="p-3 text-right font-semibold">{formatNaira(s.value)}</td>
-                  <td className="p-3">{formatDateTime(s.lastMovementAt)}</td>
-                </tr>
-              ))}
+              {rows.map((s) => <StockRow key={`${s.siteId}:${s.itemId}`} s={s} />)}
             </tbody>
           </table>
         </div>
       </Panel>
     </div>
+  )
+}
+
+const movementLabels = { GoodsReceipt: 'Received', StockRequest: 'Issued', StockCount: 'Count adjustment' } as const
+const movementLinks = { GoodsReceipt: '/warehouse/receipts/', StockRequest: '/stock-requests/', StockCount: '/warehouse/counts/' } as const
+
+/** A stock line; click it to see its movements. */
+function StockRow({ s }: { s: StockBalance }) {
+  const [open, setOpen] = useState(false)
+  const movements = useMovements(s.siteId, s.itemId, open)
+  return (
+    <>
+      <tr onClick={() => setOpen((o) => !o)} aria-expanded={open} className="cursor-pointer border-t hover:bg-accent">
+        <td className="p-3"><div className="font-semibold">{s.description}</div><div className="text-xs text-muted-foreground">{s.itemCode}</div></td>
+        <td className="p-3">{s.siteCode}</td>
+        <td className="p-3 text-right font-semibold">{s.onHand.toLocaleString('en-NG')} {s.uomCode}</td>
+        <td className="p-3 text-right">{formatNaira(s.averageCost)}</td>
+        <td className="p-3 text-right font-semibold">{formatNaira(s.value)}</td>
+        <td className="p-3">{formatDateTime(s.lastMovementAt)}</td>
+      </tr>
+      {open && (
+        <tr>
+          <td colSpan={6} className="bg-surface/60 px-6 pt-1 pb-3">
+            {movements.isPending && <p className="py-2 text-xs text-muted-foreground">Loading movements…</p>}
+            <ul className="flex flex-col divide-y text-[13px]">
+              {movements.data?.map((m, k) => (
+                <li key={k} className="flex items-center gap-3 py-2">
+                  <span className={cn('w-16 text-right font-semibold', m.quantity < 0 ? 'text-destructive' : 'text-success-foreground')}>
+                    {m.quantity > 0 ? '+' : ''}{m.quantity}
+                  </span>
+                  <span className="w-36">{movementLabels[m.documentType]}</span>
+                  <Link to={movementLinks[m.documentType] + m.documentId} onClick={(e) => e.stopPropagation()} className="font-semibold hover:text-brand">{m.documentNumber}</Link>
+                  <span className="ml-auto text-muted-foreground">{formatDateTime(m.occurredAt)}</span>
+                </li>
+              ))}
+            </ul>
+          </td>
+        </tr>
+      )}
+    </>
   )
 }

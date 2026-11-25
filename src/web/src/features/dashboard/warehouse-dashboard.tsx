@@ -4,6 +4,7 @@ import { Calendar03Icon, DeliveryTruck01Icon, PackageIcon } from '@hugeicons/cor
 import { Panel } from '@/components/panel'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { CurrentUser } from '@/features/auth/auth-api'
+import { isOutstanding, useStockRequests } from '@/features/stock/stock-api'
 import { useDueIn, useReceipts, useStock } from '@/features/warehouse/warehouse-api'
 import { formatDate, formatDateTime, formatNaira } from '@/lib/format'
 import { BigFigure, Card, CopilotBar, DarkList, DueSoon, Figures, Hero, type DarkItem, type DueItem, type Stat } from './dashboard-parts'
@@ -14,16 +15,17 @@ export function WarehouseDashboard({ user }: { user: CurrentUser }) {
   const due = useDueIn()
   const receipts = useReceipts()
   const stock = useStock()
+  const requests = useStockRequests()
+  const toIssue = (requests.data ?? []).filter((r) => isOutstanding(r.status))
   const [today] = useState(() => new Date().toLocaleDateString('en-CA'))
 
   const orders = due.data ?? []
-  const late = orders.filter((o) => o.expectedDelivery < today)
   const thisWeek = (receipts.data ?? []).filter((r) => -daysFromToday(r.receivedAt.slice(0, 10), today) <= 7)
   const stockValue = (stock.data ?? []).reduce((s, r) => s + r.value, 0)
 
   const stats: Stat[] = [
     { value: due.data ? orders.length : '–', label: 'Orders due in', icon: DeliveryTruck01Icon, to: '/warehouse' },
-    { value: due.data ? late.length : '–', label: 'Late', icon: Calendar03Icon, to: '/warehouse' },
+    { value: requests.data ? toIssue.length : '–', label: 'Requests to issue', icon: Calendar03Icon, to: '/warehouse?tab=requests' },
     { value: stock.data ? shortNaira(stockValue) : '–', label: 'Stock at cost', icon: PackageIcon, to: '/warehouse?tab=stock' },
   ]
 

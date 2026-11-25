@@ -14,12 +14,17 @@ public static class InventoryModule
     {
         services.AddModuleDbContext<InventoryDbContext>(configuration, InventoryDbContext.SchemaName);
         services.AddScoped<GoodsReceiptService>();
+        services.AddScoped<StockLedger>();
+        services.AddScoped<StockRequestService>();
+        services.AddScoped<StockCountService>();
         return services;
     }
 
     public static IEndpointRouteBuilder MapInventoryEndpoints(this IEndpointRouteBuilder app)
     {
         InventoryEndpoints.Map(app);
+        StockRequestEndpoints.Map(app);
+        StockCountEndpoints.Map(app);
         return app;
     }
 }

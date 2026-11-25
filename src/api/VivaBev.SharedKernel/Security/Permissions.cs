@@ -47,6 +47,9 @@ public static class Permissions
     {
         public const string View = "inventory.view";       // see receipts and stock
         public const string Receive = "inventory.receive"; // record goods received against purchase orders
+        public const string RequestStock = "inventory.stock.request"; // ask the warehouse for stock it holds
+        public const string IssueStock = "inventory.stock.issue";     // issue, reject or close stock requests
+        public const string CountStock = "inventory.stock.count";     // run stock counts and post the differences
     }
 
     public static class Finance
@@ -66,7 +69,7 @@ public static class Permissions
         Requisitions.Create, Requisitions.ViewDepartment, Requisitions.ViewAll,
         Sourcing.View, Sourcing.Manage,
         PurchaseOrders.View, PurchaseOrders.Manage,
-        Inventory.View, Inventory.Receive,
+        Inventory.View, Inventory.Receive, Inventory.RequestStock, Inventory.IssueStock, Inventory.CountStock,
         Finance.ViewBudgets, Finance.ViewDepartmentBudgets, Finance.ManageBudgets,
         Finance.ViewInvoices, Finance.ManageInvoices,
     ];
